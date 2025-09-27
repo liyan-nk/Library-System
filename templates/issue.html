@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Issue Book</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body class="p-4">
+<div class="container">
+  <h2>Issue Book</h2>
+  <form method="post">
+    <div class="mb-3">
+      <label>Book ID</label>
+      <input type="number" class="form-control" name="book_id" id="book_id" required>
+    </div>
+    <div class="mb-3">
+      <label>Book Name</label>
+      <input type="text" class="form-control" id="book_name" readonly>
+    </div>
+    <div class="mb-3">
+      <label>Student Admission No</label>
+      <input type="text" class="form-control" name="admission_no" id="admission_no" required>
+    </div>
+    <div class="mb-3">
+      <label>Student Name</label>
+      <input type="text" class="form-control" id="student_name" readonly>
+    </div>
+    <div class="mb-3">
+      <label>Batch</label>
+      <input type="text" class="form-control" id="student_batch" readonly>
+    </div>
+    <button class="btn btn-primary">Issue Book</button>
+    <a href="/" class="btn btn-secondary">Back</a>
+  </form>
+</div>
+
+<script>
+$(document).ready(function(){
+  $('#book_id').on('change', function(){
+    var book_id = $(this).val();
+    $.get('/get_book/' + book_id, function(data){
+      if(data.success){
+        $('#book_name').val(data.name);
+      } else {
+        $('#book_name').val('');
+        alert(data.message);
+      }
+    });
+  });
+
+  $('#admission_no').on('change', function(){
+    var admission_no = $(this).val();
+    $.get('/get_student/' + admission_no, function(data){
+      if(data.success){
+        $('#student_name').val(data.name);
+        $('#student_batch').val(data.batch);
+      } else {
+        $('#student_name').val('');
+        $('#student_batch').val('');
+        alert(data.message);
+      }
+    });
+  });
+});
+</script>
+</body>
+</html>
