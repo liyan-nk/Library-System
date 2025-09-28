@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Approve Student Accounts - Librarian Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .overdue-alert {
+            background-color: #fce8e8; /* Light red */
+            color: #d9534f;
+            border-left: 5px solid #d9534f;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="container container-narrow mt-5">
+        <h1 class="text-primary mb-4"><i class="bi bi-person-check-fill"></i> Pending Student Approvals</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% if pending_students %}
+            <p class="lead">The following **{{ pending_students|length }}** student accounts are awaiting approval before they can log into the student portal.</p>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover shadow-sm rounded-3 overflow-hidden">
+                    <thead class="bg-primary text-white">
+                        <tr>
+                            <th>Admission No.</th>
+                            <th>Student Name</th>
+                            <th>Batch</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in pending_students %}
+                            <tr>
+                                <td><span class="badge text-bg-secondary">{{ student.admission_no }}</span></td>
+                                <td>{{ student.name }}</td>
+                                <td>{{ student.batch }}</td>
+                                <td>
+                                    <a href="{{ url_for('approve_student_action', admission_no=student.admission_no) }}" 
+                                       class="btn btn-success btn-sm me-2"
+                                       onclick="return confirm('Are you sure you want to approve {{ student.name }} ({{ student.admission_no }})?')">
+                                        <i class="bi bi-check-circle-fill"></i> Approve
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info py-4 text-center">
+                <i class="bi bi-check-all icon-large"></i>
+                <h4 class="mt-2">No Pending Approvals!</h4>
+                <p class="mb-0">All registered student accounts have been approved.</p>
+            </div>
+        {% endif %}
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

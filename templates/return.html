@@ -6,7 +6,8 @@
     <title>Return Book</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"> <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
@@ -22,16 +23,22 @@
     {% endwith %}
 
     <div class="card form-card mx-auto">
-        <form method="POST">
+        <form method="POST" id="returnForm">
             <div class="mb-3">
                 <label class="form-label">Book ID (Custom ID or Database ID)</label>
-                <input type="text" class="form-control" name="book_id" placeholder="Enter Book ID or Custom ID" required>
+                <input type="text" class="form-control" name="book_id" id="bookIdInput" 
+                       placeholder="Enter Book ID or Custom ID" required>
+                <small class="form-text text-muted" id="bookNameFeedback">Enter ID to see book name.</small>
             </div>
+            
             <div class="mb-3">
                 <label class="form-label">Student Admission No</label>
-                <input type="text" class="form-control" name="admission_no" placeholder="Enter Student Admission No" required>
+                <input type="text" class="form-control" name="admission_no" id="studentAdmissionNoInput" 
+                       placeholder="Enter Student Admission No" required>
+                <small class="form-text text-muted" id="studentNameFeedback">Enter Admission No to see student name.</small>
             </div>
-            <button type="submit" class="btn btn-primary">
+            
+            <button type="submit" class="btn btn-primary" id="returnButton" disabled>
                 <i class="bi bi-box-arrow-in-left me-1"></i> Return Book
             </button>
             <a href="/" class="btn btn-secondary ms-2">Back to Dashboard</a>
@@ -40,5 +47,95 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    const bookIdInput = document.getElementById('bookIdInput');
+    const studentAdmissionNoInput = document.getElementById('studentAdmissionNoInput');
+    const bookNameFeedback = document.getElementById('bookNameFeedback');
+    const studentNameFeedback = document.getElementById('studentNameFeedback');
+    const returnButton = document.getElementById('returnButton');
+
+    let isBookValid = false;
+    let isStudentValid = false;
+
+    // --- Core AJAX Fetch Function ---
+    async function fetchData(url, feedbackElement) {
+        if (!url || url.endsWith('/')) {
+            feedbackElement.className = 'form-text text-muted';
+            feedbackElement.textContent = feedbackElement.id.includes('book') 
+                ? 'Enter ID to see book name.' : 'Enter Admission No to see student name.';
+            return null;
+        }
+
+        try {
+            const response = await fetch(url);
+            
+            if (response.ok) {
+                const data = await response.json();
+                return data;
+            } else if (response.status === 404) {
+                return { name: feedbackElement.id.includes('book') ? 'Book not found.' : 'Student not found.', available: false };
+            } else {
+                return { name: 'Error during lookup.', available: false };
+            }
+        } catch (error) {
+            console.error('Fetch error:', error);
+            return { name: 'Network error.', available: false };
+        }
+    }
+
+    // --- Book Lookup Handler ---
+    bookIdInput.addEventListener('input', async function() {
+        const query = this.value.trim();
+        const data = await fetchData(`/lookup_book/${query}`, bookNameFeedback);
+
+        if (data && data.name) {
+            bookNameFeedback.textContent = `Book: ${data.name}`;
+            
+            // CRITICAL: For returns, we want to know if the book is *unavailable* (i.e., currently issued).
+            if (data.available === false) {
+                bookNameFeedback.className = 'form-text text-warning'; // Yellow/Warning for issued book
+                isBookValid = true;
+            } else {
+                // Book is available (already returned or never issued)
+                bookNameFeedback.className = 'form-text text-danger'; 
+                bookNameFeedback.textContent += " (Book is AVAILABLE - maybe already returned?)";
+                isBookValid = false;
+            }
+        } else {
+            // Revert to initial state if input is cleared or not found
+            isBookValid = false;
+        }
+        updateReturnButtonState();
+    });
+
+    // --- Student Lookup Handler ---
+    studentAdmissionNoInput.addEventListener('input', async function() {
+        const admission_no = this.value.trim();
+        const data = await fetchData(`/lookup_student/${admission_no}`, studentNameFeedback);
+
+        if (data && data.name) {
+            studentNameFeedback.textContent = `Student: ${data.name}`;
+            if (data.name.includes('not found') || data.name.includes('Error')) {
+                 studentNameFeedback.className = 'form-text text-danger';
+                 isStudentValid = false;
+            } else {
+                 studentNameFeedback.className = 'form-text text-success';
+                 isStudentValid = true;
+            }
+        } else {
+            // Revert to initial state if input is cleared
+            isStudentValid = false;
+        }
+        updateReturnButtonState();
+    });
+
+    // --- Enable/Disable Return Button ---
+    function updateReturnButtonState() {
+        // Enable button only if both lookups are valid
+        returnButton.disabled = !(isBookValid && isStudentValid);
+    }
+    
+</script>
 </body>
 </html>

@@ -23,16 +23,39 @@
     {% endwith %}
 
     <div class="card form-card mx-auto">
-        <form method="POST">
+        <form method="POST" id="issueForm">
             <div class="mb-3">
                 <label class="form-label">Book ID (Custom ID or Database ID)</label>
-                <input type="text" class="form-control" name="book_id" placeholder="Enter Book ID" required>
+                <input type="text" class="form-control" name="book_id" id="bookIdInput" 
+                       placeholder="Enter Book ID" required>
+                <small class="form-text text-muted" id="bookNameFeedback">Enter ID to see book name.</small>
             </div>
+            
             <div class="mb-3">
                 <label class="form-label">Student Admission No</label>
-                <input type="text" class="form-control" name="admission_no" placeholder="Enter Admission No" required>
+                <input type="text" class="form-control" name="admission_no" id="studentAdmissionNoInput" 
+                       placeholder="Enter Admission No" required>
+                <small class="form-text text-muted" id="studentNameFeedback">Enter Admission No to see student name.</small>
             </div>
-            <button type="submit" class="btn btn-primary">
+            
+            <div class="mb-3">
+                <label for="loanPeriod" class="form-label">Loan Period</label>
+                <select class="form-select" id="loanPeriod" name="loan_period" required>
+                    <option value="" selected disabled>Select Loan Duration</option>
+                    <option value="7">7 Days</option>
+                    <option value="14">14 Days</option>
+                    <option value="30">30 Days</option>
+                    <option value="custom">Custom Date</option>
+                </select>
+            </div>
+            
+            <div class="mb-3" id="customDateContainer" style="display: none;">
+                <label for="customDueDate" class="form-label">Custom Due Date</label>
+                <input type="date" class="form-control" id="customDueDate" name="custom_due_date">
+                <small class="form-text text-muted">Date must be tomorrow or later.</small>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" id="issueButton" disabled>
                 <i class="bi bi-box-arrow-in-right me-1"></i> Issue Book
             </button>
             <a href="/" class="btn btn-secondary ms-2">Back to Dashboard</a>
@@ -41,5 +64,127 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    const bookIdInput = document.getElementById('bookIdInput');
+    const studentAdmissionNoInput = document.getElementById('studentAdmissionNoInput');
+    const bookNameFeedback = document.getElementById('bookNameFeedback');
+    const studentNameFeedback = document.getElementById('studentNameFeedback');
+    const issueButton = document.getElementById('issueButton');
+    
+    // NEW Elements
+    const loanPeriodSelect = document.getElementById('loanPeriod');
+    const customDateContainer = document.getElementById('customDateContainer');
+    const customDueDateInput = document.getElementById('customDueDate');
+
+    let isBookValid = false;
+    let isStudentValid = false;
+
+    // Set min date for custom input to tomorrow
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    customDueDateInput.min = tomorrow.toISOString().split('T')[0];
+
+    // --- Core AJAX Fetch Function (Same as before) ---
+    async function fetchData(url, feedbackElement) {
+        if (!url || url.endsWith('/')) {
+            feedbackElement.className = 'form-text text-muted';
+            feedbackElement.textContent = feedbackElement.id.includes('book') 
+                ? 'Enter ID to see book name.' : 'Enter Admission No to see student name.';
+            return null;
+        }
+
+        try {
+            const response = await fetch(url);
+            
+            if (response.ok) {
+                const data = await response.json();
+                return data;
+            } else if (response.status === 404) {
+                return { name: feedbackElement.id.includes('book') ? 'Book not found.' : 'Student not found.', available: false };
+            } else {
+                return { name: 'Error during lookup.', available: false };
+            }
+        } catch (error) {
+            console.error('Fetch error:', error);
+            return { name: 'Network error.', available: false };
+        }
+    }
+
+    // --- Book Lookup Handler (Same as before) ---
+    bookIdInput.addEventListener('input', async function() {
+        const query = this.value.trim();
+        const data = await fetchData(`/lookup_book/${query}`, bookNameFeedback);
+
+        if (data && data.name) {
+            bookNameFeedback.textContent = `Book: ${data.name}`;
+            if (data.available === true) {
+                bookNameFeedback.className = 'form-text text-success';
+                isBookValid = true;
+            } else {
+                bookNameFeedback.className = 'form-text text-danger';
+                bookNameFeedback.textContent += " (Book is ISSUED)";
+                isBookValid = false;
+            }
+        } else {
+            isBookValid = false;
+        }
+        updateIssueButtonState();
+    });
+
+    // --- Student Lookup Handler (Same as before) ---
+    studentAdmissionNoInput.addEventListener('input', async function() {
+        const admission_no = this.value.trim();
+        const data = await fetchData(`/lookup_student/${admission_no}`, studentNameFeedback);
+
+        if (data && data.name) {
+            studentNameFeedback.textContent = `Student: ${data.name}`;
+            if (data.name.includes('not found') || data.name.includes('Error')) {
+                 studentNameFeedback.className = 'form-text text-danger';
+                 isStudentValid = false;
+            } else {
+                 studentNameFeedback.className = 'form-text text-success';
+                 isStudentValid = true;
+            }
+        } else {
+            isStudentValid = false;
+        }
+        updateIssueButtonState();
+    });
+
+    // --- NEW: Loan Period Visibility Handler ---
+    loanPeriodSelect.addEventListener('change', function() {
+        if (this.value === 'custom') {
+            customDateContainer.style.display = 'block';
+            customDueDateInput.required = true;
+        } else {
+            customDateContainer.style.display = 'none';
+            customDueDateInput.required = false;
+        }
+        updateIssueButtonState();
+    });
+    
+    customDueDateInput.addEventListener('change', updateIssueButtonState);
+
+
+    // --- Enable/Disable Issue Button (UPDATED) ---
+    function updateIssueButtonState() {
+        const isPeriodSelected = loanPeriodSelect.value !== "";
+        
+        let isCustomDateValid = true;
+        if (loanPeriodSelect.value === 'custom') {
+            const customDate = customDueDateInput.value;
+            // Check if date is set and is later than today (using min attribute for primary visual hint)
+            isCustomDateValid = customDate && new Date(customDate) > today;
+        }
+        
+        // Enable button only if book, student, AND loan period/date are valid
+        issueButton.disabled = !(isBookValid && isStudentValid && isPeriodSelected && isCustomDateValid);
+    }
+    
+    // Initial check (in case fields are pre-filled or for state cleanup)
+    document.addEventListener('DOMContentLoaded', updateIssueButtonState); 
+</script>
 </body>
 </html>

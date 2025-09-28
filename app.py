@@ -1,15 +1,32 @@
 import sqlite3
-from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, session
 import datetime
 import os
 import secrets
+from functools import wraps 
+from datetime import date, timedelta 
+import hashlib 
 
 app = Flask(__name__)
-# FIX 1: Use environment variable for SECRET_KEY, falling back to a secure random string
+# Secure configuration
 app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(24))
 DB_NAME = "library.db"
 
-# FIX 2: Implement SQLiteContext for secure connection handling and enabling Foreign Keys
+# --- Hardcoded Librarian Credentials (Used for demonstration) ---
+LIBRARIAN_USERNAME = os.environ.get('LIBRARIAN_USER', 'librarian')
+LIBRARIAN_PASSWORD = os.environ.get('LIBRARIAN_PASS', 'librarypass') 
+# --------------------------------------------------------
+
+# --- Hashing Utilities for Student Authentication ---
+def hash_password(password):
+    """Hashes a password using SHA-256."""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def check_password(hashed_password, provided_password):
+    """Checks a provided password against a hashed one."""
+    return hashed_password == hash_password(provided_password)
+
+# --- SQLite Context Manager for safe database connections ---
 class SQLiteContext:
     """A context manager to handle SQLite connections and ensure commits/closes."""
     def __init__(self, db_name):
@@ -19,20 +36,14 @@ class SQLiteContext:
     def __enter__(self):
         self.conn = sqlite3.connect(self.db_name)
         self.conn.row_factory = sqlite3.Row
-        # CRITICAL FIX: Ensure Foreign Key constraints are enabled per connection
         self.conn.execute('PRAGMA foreign_keys = ON;')
         return self.conn
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        # Commit on successful block execution (no exception)
         if exc_type is None and self.conn:
             self.conn.commit()
-        
-        # Close the connection whether an exception occurred or not
         if self.conn:
             self.conn.close()
-        
-        # Do not suppress exceptions if they occurred or if it's a COMMIT failure (return False)
         return False
 
 def get_connection():
@@ -42,77 +53,343 @@ def init_db():
     with get_connection() as conn:
         cursor = conn.cursor()
         
-        # --- ROBUST SCHEMA DEFINITION FOR SAFETY ---
-        # Note: This aggressive RENAME/DROP/CREATE is necessary to ensure the ON DELETE SET NULL 
-        # and NULLABLE columns are enforced if the DB existed without them.
-
-        # 1. Temporarily store old data if tables exist
-        try:
-             cursor.execute("CREATE TABLE books_temp AS SELECT * FROM books")
-             cursor.execute("DROP TABLE books")
-             cursor.execute("CREATE TABLE students_temp AS SELECT * FROM students")
-             cursor.execute("DROP TABLE students")
-             cursor.execute("DROP TABLE transactions") # Transactions must be dropped to fix FKs
-        except sqlite3.OperationalError:
-             pass
+        # --- Database Schema Creation ---
         
-        # 2. Create tables with final, correct schema
-        
-        cursor.execute("""CREATE TABLE books (
+        # Books Table
+        cursor.execute("""CREATE TABLE IF NOT EXISTS books (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             custom_id TEXT UNIQUE,
                             name TEXT NOT NULL,
                             author TEXT NOT NULL,
                             available BOOLEAN NOT NULL DEFAULT 1
                         )""")
-        cursor.execute("""CREATE TABLE students (
+        
+        # Students Table
+        cursor.execute("""CREATE TABLE IF NOT EXISTS students (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             admission_no TEXT UNIQUE NOT NULL,
                             name TEXT NOT NULL,
                             batch TEXT NOT NULL
+                            -- DOB, phone, etc., would go here
                         )""")
         
-        # FIX (INTEGRITY): ON DELETE SET NULL to preserve transaction history. book_id/student_id are nullable.
-        cursor.execute("""CREATE TABLE transactions (
+        # Transactions Table (with Foreign Keys and due_date)
+        cursor.execute("""CREATE TABLE IF NOT EXISTS transactions (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             book_id INTEGER, 
                             student_id INTEGER, 
                             issue_date TEXT NOT NULL,
+                            due_date TEXT NOT NULL,  
                             return_date TEXT,
                             FOREIGN KEY(book_id) REFERENCES books(id) ON DELETE SET NULL,
                             FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE SET NULL
                         )""")
         
-        # 3. Copy data back
-        try:
-            cursor.execute("INSERT INTO books SELECT * FROM books_temp")
-            cursor.execute("DROP TABLE books_temp")
-        except sqlite3.OperationalError:
-            pass
-            
-        try:
-            cursor.execute("INSERT INTO students SELECT * FROM students_temp")
-            cursor.execute("DROP TABLE students_temp")
-        except sqlite3.OperationalError:
-            pass
+        # Student Authentication Table (Note: is_approved is the key here)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS students_auth (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                admission_no TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                is_approved BOOLEAN NOT NULL DEFAULT 0,
+                FOREIGN KEY(admission_no) REFERENCES students(admission_no) ON DELETE CASCADE
+            )
+        """)
 
 # Initialize the database structures
 init_db()
 
+
+# ----------------- MAIN PORTAL SELECTION ROUTE -----------------
+
 @app.route("/")
+def select_portal():
+    # Redirect if either user type is already logged in
+    if session.get('logged_in'):
+        return redirect(url_for('index'))
+    if session.get('student_logged_in'):
+        return redirect(url_for('student_dashboard'))
+        
+    return render_template("select_portal.html")
+
+# ----------------- LIBRARIAN AUTH DECORATOR AND ROUTES -----------------
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('logged_in'):
+            flash('Please log in to access this page.', 'danger')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/librarian_login', methods=['GET', 'POST']) 
+def login():
+    if session.get('logged_in'):
+        return redirect(url_for('index'))
+        
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if username == LIBRARIAN_USERNAME and password == LIBRARIAN_PASSWORD:
+            session['logged_in'] = True
+            session['username'] = username
+            flash('Librarian Login successful!', 'success')
+            return redirect(url_for('index'))
+        else:
+            flash('Invalid username or password.', 'danger')
+    
+    return render_template('librarian_login.html') 
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    session.pop('username', None)
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('select_portal'))
+
+@app.route("/index")
+@login_required 
 def index():
     return render_template("index.html")
 
-# --- BOOKS ---
+# ----------------- STUDENT AUTH DECORATOR AND ROUTES -----------------
+
+def student_login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('student_logged_in'):
+            flash('Please log in to access the student portal.', 'danger')
+            return redirect(url_for('student_login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/student_register', methods=['GET', 'POST'])
+def student_register():
+    if request.method == 'POST':
+        # Collect all necessary fields for the student record
+        admission_no = request.form['admission_no'].strip().upper()
+        name = request.form['name'].strip()
+        batch = request.form['batch'].strip()
+        password = request.form['password']
+        
+        if not all([admission_no, name, batch, password]):
+            flash('All fields are required.', 'danger')
+            return redirect(url_for('student_register'))
+
+        with get_connection() as conn:
+            # 1. Check if the Admission No is already in the system (either table)
+            existing_student = conn.execute("SELECT 1 FROM students WHERE admission_no=?", (admission_no,)).fetchone()
+            if existing_student:
+                # If the admission exists, check if it's already registered for the portal
+                existing_auth = conn.execute("SELECT is_approved FROM students_auth WHERE admission_no=?", (admission_no,)).fetchone()
+                
+                if existing_auth and existing_auth['is_approved']:
+                    flash("An account already exists and is approved. Please log in.", 'warning')
+                elif existing_auth and not existing_auth['is_approved']:
+                    flash("An account already exists and is pending approval. Please wait for the librarian.", 'warning')
+                else:
+                     # This scenario shouldn't happen with ON DELETE CASCADE, but handles manual insertions
+                    flash("Student record exists, but portal account hasn't been created/approved. See librarian.", 'warning')
+                return redirect(url_for('student_register'))
+            
+            try:
+                # 2. CREATE the student record (profile) first
+                conn.execute("INSERT INTO students (admission_no, name, batch) VALUES (?, ?, ?)",
+                             (admission_no, name, batch))
+                             
+                # 3. CREATE the authentication record
+                hashed_pass = hash_password(password)
+                conn.execute("INSERT INTO students_auth (admission_no, password_hash, is_approved) VALUES (?, ?, 0)",
+                             (admission_no, hashed_pass))
+                             
+                flash('Registration successful! Please wait for the librarian to approve your account before logging in.', 'success')
+                return redirect(url_for('student_login'))
+            except sqlite3.IntegrityError:
+                # This should be caught by the check above, but for robustness
+                flash(f"Admission Number '{admission_no}' is already registered.", 'danger')
+                return redirect(url_for('student_register'))
+            except Exception as e:
+                flash(f'An error occurred during registration: {str(e)}', 'danger')
+                return redirect(url_for('student_register'))
+
+    return render_template('student_register.html')
+
+@app.route('/student_login', methods=['GET', 'POST'])
+def student_login():
+    if session.get('student_logged_in'):
+        return redirect(url_for('student_dashboard'))
+        
+    if request.method == 'POST':
+        # Ensure the input is stripped and capitalized, matching how it was saved.
+        admission_no = request.form['admission_no'].strip().upper()
+        password = request.form['password']
+
+        if not admission_no:
+             flash('Please enter your Admission Number.', 'danger')
+             return redirect(url_for('student_login'))
+        
+        with get_connection() as conn:
+            # Query students_auth table using the standardized admission_no
+            auth_record = conn.execute("SELECT admission_no, password_hash, is_approved FROM students_auth WHERE admission_no=?", (admission_no,)).fetchone()
+            
+            if not auth_record:
+                # If the admission_no is not in students_auth
+                flash('Account not found. Have you registered?', 'danger')
+            elif not auth_record['is_approved']:
+                flash('Your account is awaiting approval by the librarian.', 'warning')
+            elif check_password(auth_record['password_hash'], password):
+                session['student_logged_in'] = True
+                session['student_adm_no'] = auth_record['admission_no']
+                flash('Login successful!', 'success')
+                return redirect(url_for('student_dashboard'))
+            else:
+                # This handles incorrect password
+                flash('Invalid Admission No or Password.', 'danger')
+    
+    return render_template('student_login.html')
+
+@app.route('/student_logout')
+def student_logout():
+    session.pop('student_logged_in', None)
+    session.pop('student_adm_no', None)
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('select_portal'))
+
+@app.route('/student_dashboard')
+@student_login_required
+def student_dashboard():
+    student_adm_no = session.get('student_adm_no')
+    
+    with get_connection() as conn:
+        active_loans = conn.execute("""
+            SELECT t.id, t.issue_date, t.due_date, 
+                   COALESCE(b.name, '[DELETED BOOK]') AS book_name, 
+                   COALESCE(b.custom_id, '-') AS custom_id,
+                   t.due_date < date('now') AS is_overdue
+            FROM transactions t
+            JOIN students s ON t.student_id = s.id
+            LEFT JOIN books b ON t.book_id = b.id
+            WHERE s.admission_no = ? AND t.return_date IS NULL
+            ORDER BY t.due_date ASC
+        """, (student_adm_no,)).fetchall()
+        
+        book_availability = conn.execute("""
+            SELECT SUM(CASE WHEN available = 1 THEN 1 ELSE 0 END) AS available_count,
+                   COUNT(id) AS total_count
+            FROM books
+        """).fetchone()
+
+        student_info = conn.execute("SELECT name, batch FROM students WHERE admission_no=?", (student_adm_no,)).fetchone()
+
+    return render_template('student_dashboard.html', 
+                           active_loans=active_loans, 
+                           availability=book_availability,
+                           student_info=student_info)
+
+
+# ----------------- STUDENT BOOK SEARCH ROUTE (FIXED) -----------------
+
+@app.route("/student_search_books", methods=["GET", "POST"])
+@student_login_required 
+def student_search_books():
+    student_adm_no = session.get('student_adm_no')
+    results = []
+    query = ""
+    active_loans = [] # Initialize active_loans list
+    
+    with get_connection() as conn:
+        # 1. Fetch student info
+        student_info = conn.execute("SELECT name, batch FROM students WHERE admission_no=?", (student_adm_no,)).fetchone()
+        
+        # 2. Fetch book availability
+        availability = conn.execute("""
+            SELECT SUM(CASE WHEN available = 1 THEN 1 ELSE 0 END) AS available_count,
+                   COUNT(id) AS total_count
+            FROM books
+        """).fetchone()
+
+        # 3. Fetch Active Loans (NEW: To display on the search results page)
+        active_loans = conn.execute("""
+            SELECT t.id, t.issue_date, t.due_date, 
+                   COALESCE(b.name, '[DELETED BOOK]') AS book_name, 
+                   COALESCE(b.custom_id, '-') AS custom_id,
+                   t.due_date < date('now') AS is_overdue
+            FROM transactions t
+            JOIN students s ON t.student_id = s.id
+            LEFT JOIN books b ON t.book_id = b.id
+            WHERE s.admission_no = ? AND t.return_date IS NULL
+            ORDER BY t.due_date ASC
+        """, (student_adm_no,)).fetchall()
+        
+        # ... (rest of the search logic)
+        if request.method == "POST":
+            query = request.form.get("query", "").strip()
+            if query:
+                search_term = f"%{query}%"
+                results = conn.execute("""
+                    SELECT * FROM books
+                    WHERE name LIKE ?
+                    OR author LIKE ?
+                    OR custom_id LIKE ?
+                    OR id LIKE ?
+                    ORDER BY name ASC
+                """, (search_term, search_term, search_term, search_term)).fetchall()
+        
+    # 4. Pass all required variables, including active_loans, to the template
+    return render_template("student_search_results.html", 
+                           results=results, 
+                           search_query=query, 
+                           student_info=student_info,
+                           availability=availability,
+                           active_loans=active_loans) # <-- ADDED
+
+
+# ----------------- LIBRARIAN MANAGEMENT ROUTES -----------------
+
+@app.route("/approve_students")
+@login_required
+def approve_students():
+    with get_connection() as conn:
+        pending_students = conn.execute("""
+            SELECT sa.admission_no, sa.is_approved, s.name, s.batch 
+            FROM students_auth sa
+            JOIN students s ON sa.admission_no = s.admission_no
+            WHERE sa.is_approved = 0
+            ORDER BY s.batch, s.name
+        """).fetchall()
+    
+    return render_template("approve_students.html", pending_students=pending_students)
+
+@app.route("/approve_student/<admission_no>")
+@login_required
+def approve_student_action(admission_no):
+    try:
+        with get_connection() as conn:
+            # Only update the approval status, as the student record is already created.
+            conn.execute("UPDATE students_auth SET is_approved = 1 WHERE admission_no = ?", (admission_no,))
+        flash(f"Student {admission_no} approved successfully! They can now log in.", 'success')
+    except Exception as e:
+        flash(f"Error approving student: {str(e)}", 'danger')
+        
+    return redirect(url_for('approve_students'))
+
+# ----------------- BOOKS -----------------
 
 @app.route("/add_book", methods=["GET", "POST"])
+@login_required 
 def add_book():
     if request.method == "POST":
         custom_id = request.form.get("custom_id")
-        if custom_id == "":
+        if custom_id and custom_id.strip() == "":
             custom_id = None
-        name = request.form["name"]
-        author = request.form["author"]
+        elif custom_id:
+            custom_id = custom_id.strip().upper()
+        
+        name = request.form["name"].strip()
+        author = request.form["author"].strip()
+        
         try:
             with get_connection() as conn:
                 conn.execute("INSERT INTO books (custom_id, name, author, available) VALUES (?, ?, ?, 1)",
@@ -126,14 +403,15 @@ def add_book():
     return render_template("add_book.html")
 
 @app.route("/view_books")
+@login_required 
 def view_books():
     with get_connection() as conn:
         books = conn.execute("SELECT * FROM books").fetchall()
     return render_template("view_books.html", books=books)
 
 @app.route("/delete_book/<int:id>", methods=["GET", "POST"])
+@login_required 
 def delete_book(id):
-    # LOGIC: Prevent deletion if book is actively issued.
     try:
         with get_connection() as conn:
             book = conn.execute("SELECT available, name FROM books WHERE id=?", (id,)).fetchone()
@@ -145,7 +423,6 @@ def delete_book(id):
                 flash(f"Cannot delete '{book['name']}'. It is currently issued out!", "danger")
                 return redirect(url_for("view_books"))
                 
-            # Deletion is safe: ON DELETE SET NULL handles associated transaction history.
             conn.execute("DELETE FROM books WHERE id=?", (id,))
         flash("Book deleted successfully!", "success")
     except Exception as e:
@@ -153,8 +430,8 @@ def delete_book(id):
     return redirect(url_for("view_books"))
 
 @app.route("/edit_book/<int:id>", methods=["GET", "POST"])
+@login_required 
 def edit_book(id):
-    # IMPLEMENTATION FIX: Full edit logic
     with get_connection() as conn:
         book = conn.execute("SELECT * FROM books WHERE id=?", (id,)).fetchone()
         
@@ -164,10 +441,13 @@ def edit_book(id):
 
     if request.method == "POST":
         custom_id = request.form.get("custom_id")
-        if custom_id == "":
+        if custom_id and custom_id.strip() == "":
             custom_id = None
-        name = request.form["name"]
-        author = request.form["author"]
+        elif custom_id:
+            custom_id = custom_id.strip().upper()
+            
+        name = request.form["name"].strip()
+        author = request.form["author"].strip()
 
         try:
             with get_connection() as conn:
@@ -179,32 +459,31 @@ def edit_book(id):
             return redirect(url_for("view_books"))
         except sqlite3.IntegrityError:
             flash("Book with this Custom ID already exists!", "danger")
-            # Render the form again with the failure message
-            # We must re-fetch the book for the template (though it's the same as before the POST)
             with get_connection() as conn:
                 book = conn.execute("SELECT * FROM books WHERE id=?", (id,)).fetchone()
         except Exception as e:
             flash(f"Error updating book: {str(e)}", "danger")
-            # Re-fetch book data for template after error
             with get_connection() as conn:
                 book = conn.execute("SELECT * FROM books WHERE id=?", (id,)).fetchone()
 
-    # GET request or POST failure: render the edit form
     return render_template("edit_book.html", book=book)
 
-# --- STUDENTS ---
+# ----------------- STUDENTS -----------------
 
 @app.route("/add_student", methods=["GET", "POST"])
+@login_required 
 def add_student():
+    # Librarian can still add a student profile manually if needed, 
+    # but the student must still register via the portal to get a password/auth record.
     if request.method == "POST":
-        admission_no = request.form["admission_no"].upper()
-        name = request.form["name"]
+        admission_no = request.form["admission_no"].strip().upper()
+        name = request.form["name"].strip()
         batch = request.form["batch"]
         try:
             with get_connection() as conn:
                 conn.execute("INSERT INTO students (admission_no, name, batch) VALUES (?, ?, ?)",
                              (admission_no, name, batch))
-            flash("Student added successfully!", "success")
+            flash("Student profile added successfully! (Note: Student must still self-register for portal access)", "success")
         except sqlite3.IntegrityError:
             flash("Student with this Admission No already exists!", "danger")
         except Exception as e:
@@ -213,18 +492,24 @@ def add_student():
     return render_template("add_student.html")
 
 @app.route("/view_students")
+@login_required 
 def view_students():
     with get_connection() as conn:
-        students = conn.execute("SELECT * FROM students").fetchall()
+        students = conn.execute("""
+            SELECT s.id, s.admission_no, s.name, s.batch, sa.is_approved
+            FROM students s
+            LEFT JOIN students_auth sa ON s.admission_no = sa.admission_no
+            ORDER BY s.batch, s.name
+        """).fetchall()
     return render_template("view_students.html", students=students)
 
 @app.route("/delete_student/<int:id>", methods=["GET", "POST"])
+@login_required 
 def delete_student(id):
-    # LOGIC: Implement Student Deletion, preventing deletion with active issues.
     try:
         with get_connection() as conn:
             active_issues = conn.execute("SELECT COUNT(id) FROM transactions WHERE student_id=? AND return_date IS NULL", (id,)).fetchone()[0]
-            student = conn.execute("SELECT name FROM students WHERE id=?", (id,)).fetchone()
+            student = conn.execute("SELECT name, admission_no FROM students WHERE id=?", (id,)).fetchone()
             
             if not student:
                  flash("Student not found.", "danger")
@@ -234,16 +519,16 @@ def delete_student(id):
                 flash(f"Cannot delete student '{student['name']}'. They currently have {active_issues} book(s) issued!", "danger")
                 return redirect(url_for("view_students"))
             
-            # Deletion is safe: ON DELETE SET NULL handles associated transaction history.
+            # Deleting the student record will cascade and remove the auth record and transactions.
             conn.execute("DELETE FROM students WHERE id=?", (id,))
-        flash("Student deleted successfully!", "success")
+        flash("Student and their associated portal account deleted successfully!", "success")
     except Exception as e:
         flash(f"Error deleting student: {str(e)}", "danger")
     return redirect(url_for("view_students"))
 
 @app.route("/edit_student/<int:id>", methods=["GET", "POST"])
+@login_required 
 def edit_student(id):
-    # IMPLEMENTATION FIX: Full edit logic
     with get_connection() as conn:
         student = conn.execute("SELECT * FROM students WHERE id=?", (id,)).fetchone()
         
@@ -252,41 +537,68 @@ def edit_student(id):
         return redirect(url_for("view_students"))
 
     if request.method == "POST":
-        admission_no = request.form["admission_no"].upper()
-        name = request.form["name"]
+        old_admission_no = student['admission_no']
+        new_admission_no = request.form["admission_no"].strip().upper()
+        name = request.form["name"].strip()
         batch = request.form["batch"]
 
         try:
             with get_connection() as conn:
+                # Update main student record. CASCADE handles the auth table update.
                 conn.execute(
                     "UPDATE students SET admission_no=?, name=?, batch=? WHERE id=?",
-                    (admission_no, name, batch, id)
+                    (new_admission_no, name, batch, id)
                 )
+
             flash(f"Student '{name}' updated successfully!", "success")
             return redirect(url_for("view_students"))
         except sqlite3.IntegrityError:
             flash("Student with this Admission No already exists!", "danger")
-            # Re-fetch student data for template after error
             with get_connection() as conn:
                 student = conn.execute("SELECT * FROM students WHERE id=?", (id,)).fetchone()
         except Exception as e:
             flash(f"Error updating student: {str(e)}", "danger")
-            # Re-fetch student data for template after error
             with get_connection() as conn:
                 student = conn.execute("SELECT * FROM students WHERE id=?", (id,)).fetchone()
 
-    # GET request or POST failure: render the edit form
     return render_template("edit_student.html", student=student)
 
-# --- TRANSACTIONS ---
+# ----------------- TRANSACTIONS (Unchanged) -----------------
+# ... (issue_book, return_book, extend_loan, active_issues, transaction_history, search_books, lookup_book, lookup_student remain the same)
 
 @app.route("/issue", methods=["GET", "POST"])
+@login_required 
 def issue_book():
     if request.method == "POST":
-        book_id_input = request.form["book_id"]
-        student_adm = request.form["admission_no"].upper()
+        book_id_input = request.form["book_id"].strip()
+        student_adm = request.form["admission_no"].strip().upper()
+        loan_period_days = request.form.get("loan_period")
+        custom_due_date_str = request.form.get("custom_due_date")
+        
+        issue_date_obj = date.today()
+        calculated_due_date = ""
+
+        if loan_period_days == "custom" and custom_due_date_str:
+            try:
+                calculated_due_date = datetime.datetime.strptime(custom_due_date_str, '%Y-%m-%d').strftime('%Y-%m-%d')
+                if datetime.datetime.strptime(calculated_due_date, '%Y-%m-%d').date() <= issue_date_obj:
+                    flash("Custom Due Date must be after the Issue Date.", "danger")
+                    return redirect(url_for("issue_book"))
+            except ValueError:
+                flash("Invalid Custom Due Date format.", "danger")
+                return redirect(url_for("issue_book"))
+        elif loan_period_days and loan_period_days != "custom":
+            try:
+                days = int(loan_period_days)
+                calculated_due_date = (issue_date_obj + timedelta(days=days)).strftime('%Y-%m-%d')
+            except ValueError:
+                flash("Invalid Loan Period selected.", "danger")
+                return redirect(url_for("issue_book"))
+        else:
+            flash("Please select a valid loan period or custom due date.", "danger")
+            return redirect(url_for("issue_book"))
+        
         with get_connection() as conn:
-            # Logic to find book by custom_id or internal id
             book = conn.execute("SELECT * FROM books WHERE custom_id=? OR id=?", (book_id_input, book_id_input)).fetchone()
             student = conn.execute("SELECT * FROM students WHERE admission_no=?", (student_adm,)).fetchone()
             
@@ -297,14 +609,14 @@ def issue_book():
                 flash("Student not found! (Check Admission No)", "danger")
                 return redirect(url_for("issue_book"))
             if not book["available"]:
-                flash("Book is currently not available!", "danger")
+                flash(f"Book '{book['name']}' is currently not available!", "danger")
                 return redirect(url_for("issue_book"))
             
             try:
-                conn.execute("INSERT INTO transactions (book_id, student_id, issue_date) VALUES (?, ?, ?)",
-                             (book["id"], student["id"], datetime.datetime.now().strftime('%Y-%m-%d')))
+                conn.execute("INSERT INTO transactions (book_id, student_id, issue_date, due_date) VALUES (?, ?, ?, ?)",
+                             (book["id"], student["id"], issue_date_obj.strftime('%Y-%m-%d'), calculated_due_date))
                 conn.execute("UPDATE books SET available=0 WHERE id=?", (book["id"],))
-                flash(f"Book '{book['name']}' issued to {student['name']}!", "success")
+                flash(f"Book '{book['name']}' issued to {student['name']}! Due Date: {calculated_due_date}", "success")
             except Exception as e:
                 flash(f"Error issuing book: {str(e)}", "danger")
                 
@@ -312,10 +624,11 @@ def issue_book():
     return render_template("issue.html")
 
 @app.route("/return", methods=["GET", "POST"])
+@login_required 
 def return_book():
     if request.method == "POST":
-        book_id_input = request.form["book_id"]
-        student_adm = request.form["admission_no"].upper()
+        book_id_input = request.form["book_id"].strip()
+        student_adm = request.form["admission_no"].strip().upper()
         
         with get_connection() as conn:
             book = conn.execute("SELECT * FROM books WHERE custom_id=? OR id=?", (book_id_input, book_id_input)).fetchone()
@@ -345,31 +658,83 @@ def return_book():
         return redirect(url_for("return_book"))
     return render_template("return.html")
 
-# --- REPORTS ---
+@app.route("/extend/<int:transaction_id>", methods=["GET", "POST"])
+@login_required
+def extend_loan(transaction_id):
+    with get_connection() as conn:
+        transaction = conn.execute("""
+            SELECT t.id, t.issue_date, t.due_date, 
+                   COALESCE(b.name, '[DELETED BOOK]') AS book_name, 
+                   COALESCE(s.name, '[DELETED STUDENT]') AS student_name,
+                   COALESCE(s.admission_no, 'N/A') AS admission_no
+            FROM transactions t
+            LEFT JOIN books b ON t.book_id = b.id
+            LEFT JOIN students s ON t.student_id = s.id
+            WHERE t.id = ? AND t.return_date IS NULL
+        """, (transaction_id,)).fetchone()
+
+    if not transaction:
+        flash("Active transaction not found or already returned.", "danger")
+        return redirect(url_for("active_issues"))
+
+    if request.method == "POST":
+        new_due_date_str = request.form.get("new_due_date")
+        
+        try:
+            new_due_date_obj = datetime.datetime.strptime(new_due_date_str, '%Y-%m-%d').date()
+            current_due_date_obj = datetime.datetime.strptime(transaction['due_date'], '%Y-%m-%d').date()
+            
+            if new_due_date_obj <= current_due_date_obj:
+                flash("New due date must be *after* the current due date.", "danger")
+            elif new_due_date_obj <= date.today():
+                 flash("New due date must be in the future.", "danger")
+            else:
+                with get_connection() as conn_update:
+                    conn_update.execute("UPDATE transactions SET due_date=? WHERE id=?", 
+                                        (new_due_date_str, transaction_id))
+                flash(f"Loan for '{transaction['book_name']}' extended successfully! New Due Date: {new_due_date_str}", "success")
+                return redirect(url_for("active_issues"))
+                
+        except ValueError:
+            flash("Invalid date format provided.", "danger")
+        except Exception as e:
+            flash(f"Error extending loan: {str(e)}", "danger")
+
+    return render_template("extend_loan.html", transaction=transaction)
 
 @app.route("/active_issues")
+@login_required 
 def active_issues():
     with get_connection() as conn:
-        # Use LEFT JOIN to ensure records remain visible even if a book or student was deleted
-        transactions = conn.execute("""SELECT t.id, 
+        transactions = conn.execute("""SELECT t.id, t.student_id, t.issue_date, t.due_date, 
                                      COALESCE(b.name, '[DELETED BOOK]') AS book_name, 
                                      COALESCE(s.name, '[DELETED STUDENT]') AS student_name, 
-                                     COALESCE(s.batch, '-') AS batch, 
-                                     t.issue_date
+                                     COALESCE(s.admission_no, 'N/A') AS admission_no,
+                                     COALESCE(s.batch, '-') AS batch
                                      FROM transactions t
                                      LEFT JOIN books b ON t.book_id = b.id
                                      LEFT JOIN students s ON t.student_id = s.id
                                      WHERE t.return_date IS NULL
-                                     ORDER BY t.issue_date DESC""").fetchall()
-    return render_template("active_issues.html", transactions=transactions)
+                                     ORDER BY t.due_date ASC""").fetchall() 
+    
+    today_str = date.today().strftime('%Y-%m-%d')
+    transactions_list = []
+    
+    for t in transactions:
+        t_dict = dict(t)
+        t_dict['is_overdue'] = t_dict['due_date'] < today_str
+        transactions_list.append(t_dict)
+        
+    return render_template("active_issues.html", transactions=transactions_list)
 
 @app.route("/transaction_history")
+@login_required 
 def transaction_history():
     with get_connection() as conn:
-        # Use LEFT JOIN and COALESCE for history integrity
         transactions = conn.execute("""SELECT t.id, 
                                      COALESCE(b.name, '[DELETED BOOK]') AS book_name, 
                                      COALESCE(s.name, '[DELETED STUDENT]') AS student_name, 
+                                     COALESCE(s.admission_no, 'N/A') AS admission_no,
                                      COALESCE(s.batch, '-') AS batch,
                                      t.issue_date, 
                                      t.return_date
@@ -380,38 +745,55 @@ def transaction_history():
     return render_template("transaction_history.html", transactions=transactions)
 
 @app.route("/search_books", methods=["GET", "POST"])
+@login_required 
 def search_books():
     results = []
     if request.method == "POST":
-        query = request.form["query"]
+        query = request.form["query"].strip()
         with get_connection() as conn:
             search_term = f"%{query}%"
             results = conn.execute("""SELECT * FROM books 
                                      WHERE name LIKE ? 
                                      OR author LIKE ?
                                      OR custom_id LIKE ?
+                                     OR id LIKE ?
                                      ORDER BY name ASC""",
-                                     (search_term, search_term, search_term)).fetchall()
+                                     (search_term, search_term, search_term, search_term)).fetchall()
     return render_template("search_books.html", results=results)
 
-# --- AJAX ENDPOINTS ---
+# ----------------- AJAX ENDPOINTS (Unchanged) -----------------
 
-@app.route("/get_book/<book_id>")
-def get_book(book_id):
+@app.route("/lookup_book/<query>")
+def lookup_book(query):
+    query = query.strip()
+    if not query:
+         return jsonify({'name': ''}), 404
+         
     with get_connection() as conn:
-        book = conn.execute("SELECT * FROM books WHERE custom_id=? OR id=?", (book_id, book_id)).fetchone()
+        book = conn.execute("SELECT name, available FROM books WHERE custom_id=? OR id=?", 
+                             (query.upper(), query)).fetchone()
+    
     if book:
-        return jsonify({"success": True, "title": book["name"], "available": bool(book['available'])})
-    return jsonify({"success": False})
+        return jsonify({
+            'name': book["name"], 
+            'available': bool(book['available'])
+        }), 200
+    
+    return jsonify({'name': 'Book not found.'}), 404
 
-@app.route("/get_student/<admn>")
-def get_student(admn):
-    admn = admn.upper()
+@app.route("/lookup_student/<admission_no>")
+def lookup_student(admission_no):
+    admission_no = admission_no.strip().upper()
+    if not admission_no:
+         return jsonify({'name': ''}), 404
+         
     with get_connection() as conn:
-        student = conn.execute("SELECT * FROM students WHERE admission_no=?", (admn,)).fetchone()
+        student = conn.execute("SELECT name FROM students WHERE admission_no=?", (admission_no,)).fetchone()
+    
     if student:
-        return jsonify({"success": True, "name": student["name"], "batch": student["batch"]})
-    return jsonify({"success": False})
+        return jsonify({'name': student["name"]}), 200
+    
+    return jsonify({'name': 'Student not found.'}), 404
 
 if __name__ == "__main__":
     app.run(debug=True)
