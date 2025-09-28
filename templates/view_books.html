@@ -5,31 +5,115 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>View Books</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+<link rel="stylesheet" href="/static/style.css"> 
 </head>
-<body class="p-4">
-<div class="container">
-  <h2>All Books</h2>
-  <table class="table table-striped">
-    <thead>
-      <tr><th>ID</th><th>Name</th><th>Author</th><th>Available</th><th>Actions</th></tr>
-    </thead>
-    <tbody>
-      {% for book in books %}
-      <tr>
-        <td>{{ book.id }}</td>
-        <td>{{ book.name }}</td>
-        <td>{{ book.author }}</td>
-        <td>{{ 'Yes' if book.available else 'No' }}</td>
-        <td>
-          <form action="/delete_book/{{ book.id }}" method="post" style="display:inline;" onsubmit="return confirm('Are you sure?');">
-            <button class="btn btn-danger btn-sm">Delete</button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  <a href="/" class="btn btn-secondary">Back</a>
+<body>
+
+<div class="container container-narrow">
+  <h2>All Books</h2>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <div class="card p-4 form-card"> 
+    {% if books %}
+    <div class="table-responsive">
+      <table class="table table-striped align-middle">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Book Name</th>
+            <th>Author</th>
+            <th>Custom ID</th>
+            <th>Available</th>
+            <th style="min-width: 130px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for book in books %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ book.name }}</td>
+            <td>{{ book.author }}</td>
+            <td>{{ book.custom_id or '-' }}</td>
+            <td>
+              {% if book.available %}
+              <span class="badge text-bg-success">Yes</span>
+              {% else %}
+              <span class="badge text-bg-danger">No</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{{ url_for('edit_book', id=book.id) }}" class="btn btn-sm btn-outline-primary me-1">
+                  <i class="bi bi-pencil-square"></i> Edit
+              </a>
+              <a href="#" 
+                class="btn btn-sm btn-outline-danger delete-book-btn"
+                data-bs-toggle="modal" 
+                data-bs-target="#deleteModal" 
+                data-book-id="{{ book.id }}"
+                data-book-name="{{ book.name }}">
+                  <i class="bi bi-trash"></i> Delete
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-center text-muted p-3">No books found in the library.</p>
+    {% endif %}
+
+    <a href="/" class="btn btn-secondary mt-3">Back to Dashboard</a>
+  </div>
 </div>
+
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the book: <strong id="bookNamePlaceholder"></strong>?
+                <p class="text-danger mt-2">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    Warning: You cannot delete a book that is currently issued.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a id="confirmDeleteButton" class="btn btn-danger">Delete</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteModal = document.getElementById('deleteModal');
+        const bookNamePlaceholder = document.getElementById('bookNamePlaceholder');
+        const confirmDeleteButton = document.getElementById('confirmDeleteButton');
+
+        deleteModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const bookId = button.getAttribute('data-book-id');
+            const bookName = button.getAttribute('data-book-name');
+            
+            bookNamePlaceholder.textContent = bookName;
+            confirmDeleteButton.href = `/delete_book/${bookId}`;
+        });
+    });
+</script>
 </body>
 </html>

@@ -31,8 +31,14 @@ a {
 
 /* Container */
 .container {
-    max-width: 1000px;
+    /* REMOVED: max-width: 1000px; */
     margin-top: 20px;
+}
+
+/* New: Specifically for views/forms where max width is desired */
+.container-narrow {
+    max-width: 1000px;
+    margin: 20px auto; /* Center the narrow container */
 }
 
 /* Forms */
@@ -65,6 +71,10 @@ form .form-control:focus {
     border-radius: 8px;
 }
 .btn-outline-secondary {
+    border-radius: 8px;
+}
+
+.btn-danger {
     border-radius: 8px;
 }
 
@@ -123,4 +133,48 @@ footer {
     .navbar-nav {
         text-align: center;
     }
+}
+
+/* --- Styles Moved from index.html Inline Block --- */
+
+/* Dashboard Card Styles */
+.bg-gradient-primary {
+    background: linear-gradient(90deg, #0d6efd, #6610f2); /* Matches Bootstrap Blue/Purple gradient */
+    transition: all 0.3s;
+}
+.card-link {
+    text-decoration: none;
+}
+.card-link .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+.card-title {
+    font-weight: 600;
+    margin-top: 10px;
+}
+.card i {
+    transition: transform 0.3s;
+}
+.card:hover i {
+    transform: scale(1.2);
+}
+/* Note: The h2 rule is already defined above, so we keep the more specific rule */
+/* h2 {
+    margin-bottom: 30px;
+    color: #0d6efd;
+    font-weight: 600;
+} */
+/* End of Styles Moved from index.html Inline Block */
+/* --- Styles for Forms in Cards (from add_book.html) --- */
+.card.form-card {
+    max-width: 600px;
+    border-radius: 12px;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.1); 
+    padding: 30px; 
+    margin-top: 30px;
+}
+/* Ensure h2 alignment is correct for forms */
+.container h2 {
+    text-align: center;
 }

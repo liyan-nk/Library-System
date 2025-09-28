@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Issue Book</title>
+    <title>Edit Book: {{ book.name }}</title> 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
@@ -12,7 +12,7 @@
 <body>
 
 <div class="container container-narrow">
-    <h2 class="text-center">Issue Book</h2>
+    <h2 class="text-center">Edit Book: {{ book.name }}</h2>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -22,20 +22,24 @@
       {% endif %}
     {% endwith %}
 
-    <div class="card form-card mx-auto">
+    <div class="card form-card mx-auto"> 
         <form method="POST">
+            <input type="hidden" name="id" value="{{ book.id }}"> 
+            
             <div class="mb-3">
-                <label class="form-label">Book ID (Custom ID or Database ID)</label>
-                <input type="text" class="form-control" name="book_id" placeholder="Enter Book ID" required>
+                <label class="form-label">Custom ID</label>
+                <input type="text" class="form-control" name="custom_id" value="{{ book.custom_id or '' }}" placeholder="Enter Custom ID">
             </div>
             <div class="mb-3">
-                <label class="form-label">Student Admission No</label>
-                <input type="text" class="form-control" name="admission_no" placeholder="Enter Admission No" required>
+                <label class="form-label">Book Name</label>
+                <input type="text" class="form-control" name="name" value="{{ book.name }}" required>
             </div>
-            <button type="submit" class="btn btn-primary">
-                <i class="bi bi-box-arrow-in-right me-1"></i> Issue Book
-            </button>
-            <a href="/" class="btn btn-secondary ms-2">Back to Dashboard</a>
+            <div class="mb-3">
+                <label class="form-label">Author</label>
+                <input type="text" class="form-control" name="author" value="{{ book.author }}" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Update Book</button>
+            <a href="/view_books" class="btn btn-secondary ms-2">Back to List</a>
         </form>
     </div>
 </div>
