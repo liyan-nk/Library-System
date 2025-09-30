@@ -2,87 +2,113 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Active Book Issues</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="/static/style.css">
-    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
     <style>
-        .table-danger-light {
-            --bs-table-bg: #f8d7da; /* Light red/pink */
-            --bs-table-striped-bg: #f7c9ce;
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
+        .card { transition: transform 0.2s, box-shadow 0.2s; }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1); }
+        .badge-overdue { @apply bg-red-500 text-white px-2 py-1 rounded-full text-xs font-semibold; }
+        .badge-onloan { @apply bg-green-500 text-white px-2 py-1 rounded-full text-xs font-semibold; }
+        .btn-extend { @apply inline-block px-4 py-2 bg-blue-100 text-blue-700 font-medium rounded-lg shadow-sm hover:bg-blue-200 transition; }
     </style>
 </head>
-<body>
+<body class="min-h-screen">
 
-<div class="container container-narrow">
-    <h2 class="text-center">Active Book Issues</h2>
+<div class="container mx-auto py-8 px-4 md:px-10">
+    <h2 class="text-3xl font-extrabold text-gray-800 mb-6 text-center">Active Book Issues</h2>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="flash flash-{{ category }}">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="p-4 mb-4 rounded-lg font-medium text-sm 
+                    {% if category == 'success' %} bg-green-100 text-green-700 border-l-4 border-green-400 
+                    {% elif category == 'danger' %} bg-red-100 text-red-700 border-l-4 border-red-400 
+                    {% elif category == 'warning' %} bg-yellow-100 text-yellow-700 border-l-4 border-yellow-400 
+                    {% else %} bg-blue-100 text-blue-700 border-l-4 border-blue-400 
+                    {% endif %}" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
     {% endwith %}
 
-    {% if transactions %}
-    <div class="card p-4 form-card">
-        <div class="table-responsive">
-            <table class="table table-striped table-hover align-middle">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Book</th>
-                        <th>Student</th>
-                        <th>Issue Date</th>
-                        <th>Due Date</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                {% for t in transactions %}
-                    <tr class="{{ 'table-danger-light' if t.is_overdue else '' }}"> 
-                        <td>{{ t.id }}</td>
-                        <td>{{ t.book_name }}</td>
-                        <td>{{ t.student_name }} ({{ t.admission_no }})</td>
-                        <td>{{ t.issue_date }}</td>
-                        <td>
-                            <span class="{{ 'fw-bold text-danger' if t.is_overdue else '' }}">
-                                {{ t.due_date }}
-                            </span>
-                        </td>
-                        <td>
-                            {% if t.is_overdue %}
-                                <span class="badge text-bg-danger"><i class="bi bi-clock-history me-1"></i> OVERDUE</span>
-                            {% else %}
-                                <span class="badge text-bg-success">On Loan</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                             <a href="{{ url_for('extend_loan', transaction_id=t.id) }}" class="btn btn-sm btn-outline-info me-1">
-                                 <i class="bi bi-calendar-plus"></i> Extend
-                             </a>
-                             </td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
+    <!-- Top summary cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+        <div class="card p-6 bg-white rounded-xl shadow-lg border-l-4 border-blue-500">
+            <div class="flex justify-between items-center">
+                <div class="text-lg font-bold text-gray-800">Total Active Issues</div>
+                <div class="text-2xl font-extrabold text-blue-600">{{ transactions|length }}</div>
+            </div>
         </div>
+        <div class="card p-6 bg-white rounded-xl shadow-lg border-l-4 border-red-500">
+            <div class="flex justify-between items-center">
+                <div class="text-lg font-bold text-gray-800">Overdue</div>
+                <div class="text-2xl font-extrabold text-red-600">{{ transactions|selectattr('is_overdue')|list|length }}</div>
+            </div>
+        </div>
+        <!-- <div class="card p-6 bg-white rounded-xl shadow-lg border-l-4 border-green-500">
+            <div class="flex justify-between items-center">
+                <div class="text-lg font-bold text-gray-800">On Loan</div>
+                <div class="text-2xl font-extrabold text-green-600">{{ transactions|rejectattr('is_overdue')|list|length }}</div>
+            </div>
+        </div> -->
+    </div>
+
+    {% if transactions %}
+    <div class="card bg-white rounded-xl shadow-lg overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 table-auto">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Book</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Issue Date</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for t in transactions %}
+                <tr class="{{ 'bg-red-50' if t.is_overdue else '' }} hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm text-gray-900">{{ t.id }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-900">{{ t.book_name }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ t.student_name }} ({{ t.admission_no }})</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ t.issue_date }}</td>
+                    <td class="px-4 py-3 text-sm {{ 'font-bold text-red-700' if t.is_overdue else '' }}">
+                        {{ t.due_date }}
+                    </td>
+                    <td class="px-4 py-3 text-sm">
+                        {% if t.is_overdue %}
+                            <span class="badge-overdue flex items-center"><i class="bi bi-clock-history me-1"></i> OVERDUE</span>
+                        {% else %}
+                            <span class="badge-onloan">On Loan</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-sm">
+                        <a href="{{ url_for('extend_loan', transaction_id=t.id) }}" class="btn-extend text-blue-800 flex items-center justify-center">
+                            <i class="bi bi-calendar-plus me-1"></i> Extend
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
     {% else %}
-    <div class="alert alert-info text-center mt-4">
-        <i class="bi bi-check-circle-fill me-2"></i> All books have been returned. No active issues found.
+    <div class="p-6 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl text-center shadow-inner mt-4">
+        <p class="font-semibold text-lg"><i class="bi bi-check-circle-fill me-2"></i>All books have been returned. No active issues found.</p>
     </div>
     {% endif %}
-    
-    <a href="/" class="btn btn-secondary mt-3">Back to Dashboard</a>
+
+    <div class="mt-6">
+        <a href="{{ url_for('index') }}" class="inline-block px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg transition">Back to Dashboard</a>
+    </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.js"></script>
 </body>
 </html>

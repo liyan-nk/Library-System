@@ -82,7 +82,7 @@ def init_db():
                             due_date TEXT NOT NULL,  
                             return_date TEXT,
                             FOREIGN KEY(book_id) REFERENCES books(id) ON DELETE SET NULL,
-                            FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE SET NULL
+                            FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE CASCADE
                         )""")
         
         # Student Authentication Table (Note: is_approved is the key here)
@@ -198,12 +198,12 @@ def student_register():
                 # 2. CREATE the student record (profile) first
                 conn.execute("INSERT INTO students (admission_no, name, batch) VALUES (?, ?, ?)",
                              (admission_no, name, batch))
-                             
+                                 
                 # 3. CREATE the authentication record
                 hashed_pass = hash_password(password)
                 conn.execute("INSERT INTO students_auth (admission_no, password_hash, is_approved) VALUES (?, ?, 0)",
                              (admission_no, hashed_pass))
-                             
+                                 
                 flash('Registration successful! Please wait for the librarian to approve your account before logging in.', 'success')
                 return redirect(url_for('student_login'))
             except sqlite3.IntegrityError:
@@ -227,8 +227,8 @@ def student_login():
         password = request.form['password']
 
         if not admission_no:
-             flash('Please enter your Admission Number.', 'danger')
-             return redirect(url_for('student_login'))
+              flash('Please enter your Admission Number.', 'danger')
+              return redirect(url_for('student_login'))
         
         with get_connection() as conn:
             # Query students_auth table using the standardized admission_no
@@ -375,6 +375,34 @@ def approve_student_action(admission_no):
         
     return redirect(url_for('approve_students'))
 
+
+@app.route("/reject_student/<admission_no>")
+@login_required
+def reject_student_action(admission_no):
+    """
+    Deletes a student's profile and their pending portal registration.
+    This action ensures that the student must re-register if they wish to try again.
+    """
+    try:
+        with get_connection() as conn:
+            # 1. Get the student's ID for deletion, needed to ensure the flash message is accurate.
+            student = conn.execute("SELECT name, id FROM students WHERE admission_no = ?", (admission_no,)).fetchone()
+            
+            if not student:
+                flash(f"Error: Student with admission number {admission_no} not found or already deleted.", 'danger')
+                return redirect(url_for('approve_students'))
+                
+            # 2. Deleting from 'students' cascades the deletion to 'students_auth' 
+            # (and 'transactions', though no active transactions should exist for a pending user).
+            conn.execute("DELETE FROM students WHERE id=?", (student['id'],))
+            
+        flash(f"Student account for {admission_no} ({student['name']}) rejected and deleted successfully.", 'success')
+    except Exception as e:
+        flash(f"Error rejecting student: {str(e)}", 'danger')
+        
+    return redirect(url_for('approve_students'))
+
+
 # ----------------- BOOKS -----------------
 
 @app.route("/add_book", methods=["GET", "POST"])
@@ -405,9 +433,38 @@ def add_book():
 @app.route("/view_books")
 @login_required 
 def view_books():
+    # Get search query and filter from URL arguments
+    query = request.args.get('query', '')
+    availability_filter = request.args.get('filter', 'all')
+    
+    # Base SQL query
+    sql = "SELECT * FROM books"
+    params = []
+    
+    # Dynamically build the WHERE clause
+    conditions = []
+    if query:
+        search_term = f"%{query}%"
+        conditions.append("(name LIKE ? OR author LIKE ? OR custom_id LIKE ?)")
+        params.extend([search_term, search_term, search_term])
+        
+    if availability_filter == 'available':
+        conditions.append("available = 1")
+    elif availability_filter == 'issued':
+        conditions.append("available = 0")
+        
+    if conditions:
+        sql += " WHERE " + " AND ".join(conditions)
+        
+    sql += " ORDER BY name ASC"
+
     with get_connection() as conn:
-        books = conn.execute("SELECT * FROM books").fetchall()
-    return render_template("view_books.html", books=books)
+        books = conn.execute(sql, tuple(params)).fetchall()
+        
+    return render_template("view_books.html", 
+                           books=books, 
+                           search_query=query, 
+                           current_filter=availability_filter)
 
 @app.route("/delete_book/<int:id>", methods=["GET", "POST"])
 @login_required 
@@ -416,8 +473,8 @@ def delete_book(id):
         with get_connection() as conn:
             book = conn.execute("SELECT available, name FROM books WHERE id=?", (id,)).fetchone()
             if not book:
-                 flash("Book not found.", "danger")
-                 return redirect(url_for("view_books"))
+                  flash("Book not found.", "danger")
+                  return redirect(url_for("view_books"))
 
             if not book['available']:
                 flash(f"Cannot delete '{book['name']}'. It is currently issued out!", "danger")
@@ -491,17 +548,54 @@ def add_student():
         return redirect(url_for("add_student"))
     return render_template("add_student.html")
 
+
 @app.route("/view_students")
 @login_required 
 def view_students():
+    query = request.args.get('query', '')
+    batch_filter = request.args.get('batch', 'all')
+    status_filter = request.args.get('status', 'all')
+    
+    # Base SQL query
+    sql = """
+        SELECT s.id, s.admission_no, s.name, s.batch, sa.is_approved
+        FROM students s
+        LEFT JOIN students_auth sa ON s.admission_no = sa.admission_no
+    """
+    params = []
+    conditions = []
+
+    if query:
+        search_term = f"%{query}%"
+        conditions.append("(s.name LIKE ? OR s.admission_no LIKE ?)")
+        params.extend([search_term, search_term])
+        
+    if batch_filter != 'all':
+        conditions.append("s.batch = ?")
+        params.append(batch_filter)
+
+    if status_filter == 'approved':
+        conditions.append("sa.is_approved = 1")
+    elif status_filter == 'pending':
+        # Handles both pending (0) and not yet registered (NULL)
+        conditions.append("(sa.is_approved = 0 OR sa.is_approved IS NULL)")
+
+    if conditions:
+        sql += " WHERE " + " AND ".join(conditions)
+        
+    sql += " ORDER BY s.batch, s.name"
+
     with get_connection() as conn:
-        students = conn.execute("""
-            SELECT s.id, s.admission_no, s.name, s.batch, sa.is_approved
-            FROM students s
-            LEFT JOIN students_auth sa ON s.admission_no = sa.admission_no
-            ORDER BY s.batch, s.name
-        """).fetchall()
-    return render_template("view_students.html", students=students)
+        students = conn.execute(sql, tuple(params)).fetchall()
+        # Fetch distinct batches for the filter dropdown
+        batches = conn.execute("SELECT DISTINCT batch FROM students ORDER BY batch ASC").fetchall()
+        
+    return render_template("view_students.html", 
+                           students=students,
+                           batches=batches,
+                           search_query=query,
+                           current_batch=batch_filter,
+                           current_status=status_filter)
 
 @app.route("/delete_student/<int:id>", methods=["GET", "POST"])
 @login_required 
@@ -512,8 +606,8 @@ def delete_student(id):
             student = conn.execute("SELECT name, admission_no FROM students WHERE id=?", (id,)).fetchone()
             
             if not student:
-                 flash("Student not found.", "danger")
-                 return redirect(url_for("view_students"))
+                  flash("Student not found.", "danger")
+                  return redirect(url_for("view_students"))
 
             if active_issues > 0:
                 flash(f"Cannot delete student '{student['name']}'. They currently have {active_issues} book(s) issued!", "danger")
@@ -537,7 +631,7 @@ def edit_student(id):
         return redirect(url_for("view_students"))
 
     if request.method == "POST":
-        old_admission_no = student['admission_no']
+        # old_admission_no = student['admission_no'] # Not explicitly needed due to foreign key cascade update logic
         new_admission_no = request.form["admission_no"].strip().upper()
         name = request.form["name"].strip()
         batch = request.form["batch"]
@@ -563,8 +657,7 @@ def edit_student(id):
 
     return render_template("edit_student.html", student=student)
 
-# ----------------- TRANSACTIONS (Unchanged) -----------------
-# ... (issue_book, return_book, extend_loan, active_issues, transaction_history, search_books, lookup_book, lookup_student remain the same)
+# ----------------- TRANSACTIONS -----------------
 
 @app.route("/issue", methods=["GET", "POST"])
 @login_required 
@@ -599,7 +692,11 @@ def issue_book():
             return redirect(url_for("issue_book"))
         
         with get_connection() as conn:
-            book = conn.execute("SELECT * FROM books WHERE custom_id=? OR id=?", (book_id_input, book_id_input)).fetchone()
+            # --- THIS IS THE CORRECTED LINE ---
+            # It now checks for the uppercased custom_id OR the numeric id.
+            book = conn.execute("SELECT * FROM books WHERE custom_id=? OR id=?", 
+                                (book_id_input.upper(), book_id_input)).fetchone()
+            
             student = conn.execute("SELECT * FROM students WHERE admission_no=?", (student_adm,)).fetchone()
             
             if not book:
@@ -631,7 +728,11 @@ def return_book():
         student_adm = request.form["admission_no"].strip().upper()
         
         with get_connection() as conn:
-            book = conn.execute("SELECT * FROM books WHERE custom_id=? OR id=?", (book_id_input, book_id_input)).fetchone()
+            # --- THIS IS THE CORRECTED LINE ---
+            # It now checks for the uppercased custom_id OR the numeric id.
+            book = conn.execute("SELECT * FROM books WHERE custom_id=? OR id=?", 
+                                (book_id_input.upper(), book_id_input)).fetchone()
+            
             student = conn.execute("SELECT * FROM students WHERE admission_no=?", (student_adm,)).fetchone()
             
             if not book or not student:
@@ -691,7 +792,7 @@ def extend_loan(transaction_id):
             else:
                 with get_connection() as conn_update:
                     conn_update.execute("UPDATE transactions SET due_date=? WHERE id=?", 
-                                        (new_due_date_str, transaction_id))
+                                         (new_due_date_str, transaction_id))
                 flash(f"Loan for '{transaction['book_name']}' extended successfully! New Due Date: {new_due_date_str}", "success")
                 return redirect(url_for("active_issues"))
                 
@@ -707,15 +808,15 @@ def extend_loan(transaction_id):
 def active_issues():
     with get_connection() as conn:
         transactions = conn.execute("""SELECT t.id, t.student_id, t.issue_date, t.due_date, 
-                                     COALESCE(b.name, '[DELETED BOOK]') AS book_name, 
-                                     COALESCE(s.name, '[DELETED STUDENT]') AS student_name, 
-                                     COALESCE(s.admission_no, 'N/A') AS admission_no,
-                                     COALESCE(s.batch, '-') AS batch
-                                     FROM transactions t
-                                     LEFT JOIN books b ON t.book_id = b.id
-                                     LEFT JOIN students s ON t.student_id = s.id
-                                     WHERE t.return_date IS NULL
-                                     ORDER BY t.due_date ASC""").fetchall() 
+                                           COALESCE(b.name, '[DELETED BOOK]') AS book_name, 
+                                           COALESCE(s.name, '[DELETED STUDENT]') AS student_name, 
+                                           COALESCE(s.admission_no, 'N/A') AS admission_no,
+                                           COALESCE(s.batch, '-') AS batch
+                                           FROM transactions t
+                                           LEFT JOIN books b ON t.book_id = b.id
+                                           LEFT JOIN students s ON t.student_id = s.id
+                                           WHERE t.return_date IS NULL
+                                           ORDER BY t.due_date ASC""").fetchall() 
     
     today_str = date.today().strftime('%Y-%m-%d')
     transactions_list = []
@@ -730,19 +831,46 @@ def active_issues():
 @app.route("/transaction_history")
 @login_required 
 def transaction_history():
+    query = request.args.get('query', '')
+    status_filter = request.args.get('status', 'all')
+    
+    sql = """
+        SELECT t.id, 
+               COALESCE(b.name, '[DELETED BOOK]') AS book_name, 
+               COALESCE(s.name, '[DELETED STUDENT]') AS student_name, 
+               COALESCE(s.admission_no, 'N/A') AS admission_no,
+               COALESCE(s.batch, '-') AS batch,
+               t.issue_date, 
+               t.return_date
+        FROM transactions t
+        LEFT JOIN books b ON t.book_id = b.id
+        LEFT JOIN students s ON t.student_id = s.id
+    """
+    params = []
+    conditions = []
+
+    if query:
+        search_term = f"%{query}%"
+        conditions.append("(b.name LIKE ? OR s.name LIKE ? OR s.admission_no LIKE ?)")
+        params.extend([search_term, search_term, search_term])
+        
+    if status_filter == 'active':
+        conditions.append("t.return_date IS NULL")
+    elif status_filter == 'returned':
+        conditions.append("t.return_date IS NOT NULL")
+
+    if conditions:
+        sql += " WHERE " + " AND ".join(conditions)
+        
+    sql += " ORDER BY t.id DESC"
+
     with get_connection() as conn:
-        transactions = conn.execute("""SELECT t.id, 
-                                     COALESCE(b.name, '[DELETED BOOK]') AS book_name, 
-                                     COALESCE(s.name, '[DELETED STUDENT]') AS student_name, 
-                                     COALESCE(s.admission_no, 'N/A') AS admission_no,
-                                     COALESCE(s.batch, '-') AS batch,
-                                     t.issue_date, 
-                                     t.return_date
-                                     FROM transactions t
-                                     LEFT JOIN books b ON t.book_id = b.id
-                                     LEFT JOIN students s ON t.student_id = s.id
-                                     ORDER BY t.id DESC""").fetchall()
-    return render_template("transaction_history.html", transactions=transactions)
+        transactions = conn.execute(sql, tuple(params)).fetchall()
+        
+    return render_template("transaction_history.html", 
+                           transactions=transactions,
+                           search_query=query,
+                           current_status=status_filter)
 
 @app.route("/search_books", methods=["GET", "POST"])
 @login_required 
@@ -753,40 +881,39 @@ def search_books():
         with get_connection() as conn:
             search_term = f"%{query}%"
             results = conn.execute("""SELECT * FROM books 
-                                     WHERE name LIKE ? 
-                                     OR author LIKE ?
-                                     OR custom_id LIKE ?
-                                     OR id LIKE ?
-                                     ORDER BY name ASC""",
-                                     (search_term, search_term, search_term, search_term)).fetchall()
+                                           WHERE name LIKE ? 
+                                           OR author LIKE ?
+                                           OR custom_id LIKE ?
+                                           OR id LIKE ?
+                                           ORDER BY name ASC""",
+                                           (search_term, search_term, search_term, search_term)).fetchall()
     return render_template("search_books.html", results=results)
 
 # ----------------- AJAX ENDPOINTS (Unchanged) -----------------
 
-@app.route("/lookup_book/<query>")
-def lookup_book(query):
-    query = query.strip()
-    if not query:
-         return jsonify({'name': ''}), 404
-         
+@app.route("/lookup_book/<book_id>")
+def lookup_book(book_id):
+    if not book_id:
+        return jsonify({"name": "Book not found", "available": False}), 404
+        
     with get_connection() as conn:
-        book = conn.execute("SELECT name, available FROM books WHERE custom_id=? OR id=?", 
-                             (query.upper(), query)).fetchone()
+        # Query by either the primary key (id) or the custom_id
+        book = conn.execute("SELECT name, available FROM books WHERE id = ? OR custom_id = ?", 
+                            (book_id, book_id.upper())).fetchone()
     
     if book:
-        return jsonify({
-            'name': book["name"], 
-            'available': bool(book['available'])
-        }), 200
-    
-    return jsonify({'name': 'Book not found.'}), 404
+        # The column names are 'name' and 'available'
+        return jsonify({"name": book["name"], "available": bool(book["available"])})
+    else:
+        return jsonify({"name": "Book not found", "available": False}), 404
+
 
 @app.route("/lookup_student/<admission_no>")
 def lookup_student(admission_no):
     admission_no = admission_no.strip().upper()
     if not admission_no:
-         return jsonify({'name': ''}), 404
-         
+           return jsonify({'name': ''}), 404
+           
     with get_connection() as conn:
         student = conn.execute("SELECT name FROM students WHERE admission_no=?", (admission_no,)).fetchone()
     
@@ -794,6 +921,8 @@ def lookup_student(admission_no):
         return jsonify({'name': student["name"]}), 200
     
     return jsonify({'name': 'Student not found.'}), 404
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
