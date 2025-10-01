@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Rendering Functions ---
-    function renderTable(students) {
+        function renderTable(students) {
         tableBody.innerHTML = '';
         if (students.length === 0) {
             tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-10 px-6 text-gray-500">No students found matching your criteria.</td></tr>`;
@@ -302,7 +302,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             tableRowsHtml += `
                 <tr class="hover:bg-gray-50 transition">
-                    <td class="px-6 py-4 text-sm font-semibold text-gray-900">${student.name}</td>
+                    <td class="px-6 py-4 text-sm font-semibold text-gray-900">
+                        <a href="/student_details/${student.id}" class="text-blue-600 hover:underline hover:text-blue-800">
+                            ${student.name}
+                        </a>
+                    </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono">${student.admission_no}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.batch}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-center">${statusBadge}</td>

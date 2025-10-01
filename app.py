@@ -1107,5 +1107,48 @@ def student_change_password():
 
     return render_template('student_change_password.html', student_info=student_info)
 
+@app.route("/student_details/<int:id>")
+@login_required
+def student_details(id):
+    with get_connection() as conn:
+        # 1. Get Student's basic info
+        student = conn.execute("SELECT * FROM students WHERE id = ?", (id,)).fetchone()
+        
+        if not student:
+            flash("Student not found.", "danger")
+            return redirect(url_for('view_students'))
+
+        # 2. Get Student's active loans
+        active_loans_data = conn.execute("""
+            SELECT b.name as book_name, t.issue_date, t.due_date
+            FROM transactions t
+            JOIN books b ON t.book_id = b.id
+            WHERE t.student_id = ? AND t.return_date IS NULL
+            ORDER BY t.due_date ASC
+        """, (id,)).fetchall()
+        
+        # Add overdue status in Python
+        today_str = date.today().strftime('%Y-%m-%d')
+        active_loans = []
+        for loan in active_loans_data:
+            loan_dict = dict(loan)
+            loan_dict['is_overdue'] = loan_dict['due_date'] < today_str
+            active_loans.append(loan_dict)
+
+        # 3. Get Student's loan history (returned books)
+        loan_history = conn.execute("""
+            SELECT b.name as book_name, t.issue_date, t.return_date
+            FROM transactions t
+            JOIN books b ON t.book_id = b.id
+            WHERE t.student_id = ? AND t.return_date IS NOT NULL
+            ORDER BY t.return_date DESC
+        """, (id,)).fetchall()
+
+    return render_template("student_details.html", 
+                           student=student, 
+                           active_loans=active_loans, 
+                           loan_history=loan_history)
+
+
 if __name__ == "__main__":
     app.run(debug=True)
