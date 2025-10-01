@@ -1073,5 +1073,39 @@ def api_view_books():
         }
     })
 
+@app.route('/student_change_password', methods=['GET', 'POST'])
+@student_login_required
+def student_change_password():
+    student_adm_no = session.get('student_adm_no')
+    student_info = None
+    with get_connection() as conn:
+        student_info = conn.execute("SELECT name, batch FROM students WHERE admission_no=?", (student_adm_no,)).fetchone()
+
+    if request.method == 'POST':
+        current_password = request.form['current_password']
+        new_password = request.form['new_password']
+        confirm_password = request.form['confirm_password']
+
+        if new_password != confirm_password:
+            flash("New passwords do not match.", 'danger')
+            return redirect(url_for('student_change_password'))
+
+        with get_connection() as conn:
+            user = conn.execute("SELECT password_hash FROM students_auth WHERE admission_no = ?", (student_adm_no,)).fetchone()
+            
+            if user and check_password(user['password_hash'], current_password):
+                try:
+                    new_hashed_password = hash_password(new_password)
+                    conn.execute("UPDATE students_auth SET password_hash = ? WHERE admission_no = ?", 
+                                 (new_hashed_password, student_adm_no))
+                    flash("Your password has been updated successfully!", 'success')
+                    return redirect(url_for('student_dashboard'))
+                except Exception as e:
+                    flash(f"An error occurred while updating your password: {str(e)}", "danger")
+            else:
+                flash("Your current password was incorrect. Please try again.", 'danger')
+
+    return render_template('student_change_password.html', student_info=student_info)
+
 if __name__ == "__main__":
     app.run(debug=True)
