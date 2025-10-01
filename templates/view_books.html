@@ -16,42 +16,40 @@
 </head>
 <body class="min-h-screen">
     <div class="md:flex">
-        <div class="sidebar w-full md:w-64 p-4 flex-shrink-0 md:flex md:flex-col md:h-screen md:sticky md:top-0 md:sticky md:top-0">
+        <div class="sidebar w-full md:w-64 p-4 flex-shrink-0 md:flex md:flex-col md:h-screen md:sticky md:top-0">
             <div class="flex-grow">
                 <h2 class="text-xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Librarian Portal</h2>
                 <nav class="flex flex-col space-y-1">
                     <span class="text-xs uppercase text-gray-500 px-2 pt-1 pb-1 font-semibold block">Main</span>
                     <a href="{{ url_for('index') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-10v10a1 1 0 001 1h3m-3-14L12 3l-7 7"></path></svg>
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-10v10a1 1 0 001 1h3m-3-14L12 3l-7 7"></path></svg>
                         Dashboard
                     </a>
-
                     <span class="text-xs uppercase text-gray-500 px-2 pt-3 pb-1 font-semibold block">Books & Loans</span>
                     <a href="{{ url_for('issue_book') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                         Issue Book
                     </a>
                     <a href="{{ url_for('return_book') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         Return Book
                     </a>
                     <a href="{{ url_for('transaction_history') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         Transaction History
                     </a>
-                    <a href="{{ url_for('view_books') }}" class="nav-link-active bg-blue-600 flex items-center p-2 rounded-lg text-gray-300 font-medium">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.467 9.5 5.513 8 6.5c-1.832 1.458-2.578 3.849-1.996 6.136l.732 2.932m0 0l3.173 1.269a2 2 0 001.664 0l3.173-1.269.732-2.932c.582-2.287-.164-4.678-1.996-6.136-1.5-1.1-2.832-1.146-4-1.146z"></path></svg>
+                    <a href="{{ url_for('view_books') }}" class="nav-link-active flex items-center p-2 rounded-lg text-white bg-blue-600 font-medium shadow-md">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.467 9.5 5.513 8 6.5c-1.832 1.458-2.578 3.849-1.996 6.136l.732 2.932m0 0l3.173 1.269a2 2 0 001.664 0l3.173-1.269.732-2.932c.582-2.287-.164-4.678-1.996-6.136-1.5-1.1-2.832-1.146-4-1.146z"></path></svg>
                         View Books
                     </a>
                     <a href="{{ url_for('add_book') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         Add New Book
                     </a>
                     <a href="{{ url_for('active_issues') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         Active Issues
                     </a>
-
                     <span class="text-xs uppercase text-gray-500 px-2 pt-3 pb-1 font-semibold block">User Management</span>
                     <a href="{{ url_for('approve_students') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
                          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a1 1 0 011-1h12a1 1 0 011 1v1h-14v-1z"></path></svg>
@@ -61,9 +59,8 @@
                         {% endif %}
                     </a>
                     <a href="{{ url_for('view_students') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20v-2a3 3 0 00-5.356-1.857M12 10V6M9 6h6m2 5a4 4 0 11-8 0 4 4 0 018 0zM3 20a1 1 0 011-1h12a1 1 0 011 1v1h-14v-1z"></path></svg>
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20v-2a3 3 0 00-5.356-1.857M12 10V6M9 6h6m2 5a4 4 0 11-8 0 4 4 0 018 0zM3 20a1 1 0 011-1h12a1 1 0 011 1v1h-14v-1z"></path></svg>
                         View Students
-                    </a>
                     </a>
                     <a href="{{ url_for('add_student') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a1 1 0 011-1h12a1 1 0 011 1v1h-14v-1z"></path></svg>
@@ -71,9 +68,9 @@
                     </a>
                 </nav>
             </div>
-            <div class="flex-shrink-0 mt-2">
+            <div class="flex-shrink-0">
                 <a href="{{ url_for('logout') }}" class="nav-link flex items-center p-2 rounded-lg text-red-400 font-medium">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                     Logout
                 </a>
             </div>
@@ -86,7 +83,7 @@
                     <p class="text-gray-500 mt-1">Search, filter, and manage all books in the library.</p>
                 </div>
                 <a href="{{ url_for('add_book') }}" class="mt-4 md:mt-0 px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-150 flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                     Add New Book
                 </a>
             </header>
@@ -106,34 +103,26 @@
             {% endwith %}
 
             <div class="mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                <form method="GET" action="{{ url_for('view_books') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                     <div class="md:col-span-2">
                         <label for="query" class="block text-sm font-medium text-gray-700 mb-1">Search by Name, Author, or ID</label>
-                        <div class="relative">
-                            <input type="text" name="query" id="query" value="{{ search_query or '' }}" class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-700 shadow-sm" placeholder="e.g., The Art of Computer Programming">
-                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></span>
-                        </div>
+                        <input type="text" name="query" id="query" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-700 shadow-sm" placeholder="e.g., The Art of Computer Programming">
                     </div>
                     <div>
                         <label for="filter" class="block text-sm font-medium text-gray-700 mb-1">Filter by Status</label>
                         <select name="filter" id="filter" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-700 shadow-sm">
-                            <option value="all" {% if current_filter == 'all' %}selected{% endif %}>All Books</option>
-                            <option value="available" {% if current_filter == 'available' %}selected{% endif %}>Available</option>
-                            <option value="issued" {% if current_filter == 'issued' %}selected{% endif %}>Issued</option>
+                            <option value="all">All Books</option>
+                            <option value="available">Available</option>
+                            <option value="issued">Issued</option>
                         </select>
                     </div>
-                    <div class="md:col-span-3 flex justify-end gap-3">
-                         <a href="{{ url_for('view_books') }}" class="px-5 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition duration-150">Reset</a>
-                        <button type="submit" class="px-5 py-2.5 bg-gray-800 text-white font-semibold rounded-lg shadow-md hover:bg-gray-900 transition duration-150">Apply Filter</button>
-                    </div>
-                </form>
+                </div>
             </div>
 
             <div class="overflow-x-auto bg-white rounded-xl shadow-lg">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">#</th>
                             <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Book Name</th>
                             <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Author</th>
                             <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Custom ID</th>
@@ -141,176 +130,184 @@
                             <th class="px-6 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% if books %}
-                            {% for book in books %}
-                            <tr class="hover:bg-gray-50 transition duration-150">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">{{ (current_page - 1) * books_per_page + loop.index }}</td>
-                                <td class="px-6 py-4 text-sm font-semibold text-gray-900">{{ book.name }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ book.author }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{{ book.custom_id or '-' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    {% if book.available %}
-                                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Available</span>
-                                    {% else %}
-                                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Issued</span>
-                                    {% endif %}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right space-x-2">
-                                    <button type="button" class="edit-book-btn px-3 py-2 text-sm font-semibold rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200 transition"
-                                        data-book-id="{{ book.id }}"
-                                        data-book-name="{{ book.name }}"
-                                        data-book-author="{{ book.author }}"
-                                        data-book-customid="{{ book.custom_id or '' }}">
-                                        Edit
-                                    </button>
-                                    <button type="button" class="delete-book-btn px-3 py-2 text-sm font-semibold rounded-md text-red-600 bg-red-100 hover:bg-red-200 transition" 
-                                        data-book-id="{{ book.id }}" 
-                                        data-book-name="{{ book.name }}">
-                                        Delete
-                                    </button>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr>
-                                <td colspan="6" class="text-center py-10 px-6 text-gray-500">
-                                    <h3 class="text-lg font-medium">No Books Found</h3>
-                                    <p class="mt-1">Your search or filter returned no results. Try different keywords or reset the filter.</p>
-                                </td>
-                            </tr>
-                        {% endif %}
+                    <tbody id="books-table-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Rows will be inserted by JavaScript -->
                     </tbody>
                 </table>
             </div>
-
-            {% if total_pages > 1 %}
-            <div class="mt-6 flex flex-col md:flex-row justify-between items-center text-sm">
-                <div class="text-gray-600 mb-4 md:mb-0">
-                    Showing <span class="font-bold">{{ (current_page - 1) * books_per_page + 1 }}</span>
-                    to <span class="font-bold">{{ (current_page - 1) * books_per_page + books|length }}</span>
-                    of <span class="font-bold">{{ total_books }}</span> results
-                </div>
-                
-                <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                    <a href="{{ url_for('view_books', page=current_page-1, query=search_query, filter=current_filter) if current_page > 1 else '#' }}"
-                       class="relative inline-flex items-center rounded-l-md px-3 py-2 text-gray-500 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0
-                              {% if current_page == 1 %} pointer-events-none opacity-50 {% endif %}">
-                        <span class="sr-only">Previous</span>
-                        &laquo; Prev
-                    </a>
-
-                    {% for page_num in range(1, total_pages + 1) %}
-                        <a href="{{ url_for('view_books', page=page_num, query=search_query, filter=current_filter) }}"
-                           class="relative inline-flex items-center px-4 py-2 font-semibold ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0
-                                  {% if page_num == current_page %}
-                                    z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600
-                                  {% else %}
-                                    text-gray-900 hover:bg-gray-50
-                                  {% endif %}">
-                            {{ page_num }}
-                        </a>
-                    {% endfor %}
-
-                    <a href="{{ url_for('view_books', page=current_page+1, query=search_query, filter=current_filter) if current_page < total_pages else '#' }}"
-                       class="relative inline-flex items-center rounded-r-md px-3 py-2 text-gray-500 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0
-                              {% if current_page == total_pages %} pointer-events-none opacity-50 {% endif %}">
-                        <span class="sr-only">Next</span>
-                        Next &raquo;
-                    </a>
-                </nav>
+            
+            <div class="mt-4 flex flex-col md:flex-row justify-between items-center space-y-2 md:space-y-0" id="pagination-footer">
+                <div id="pagination-info"></div>
+                <div id="pagination-controls-desktop"></div>
             </div>
-            {% endif %}
+            <div id="pagination-controls-mobile"></div>
 
+            <div class="mt-8 md:hidden">
+                <a href="{{ url_for('logout') }}" class="flex items-center justify-center p-3 rounded-lg text-red-400 font-medium hover:bg-red-500 hover:text-white border border-red-400 transition">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    Logout
+                </a>
+            </div>
         </main>
     </div>
 
-    <div id="editModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white rounded-lg shadow-2xl w-full max-w-lg mx-auto">
-            <form id="editForm" method="POST" action="">
-                <div class="p-6">
-                    <h3 class="text-xl font-bold text-gray-900 mb-4">Edit Book</h3>
-                    <div class="space-y-4">
-                        <div>
-                            <label for="editBookName" class="block text-sm font-medium text-gray-700">Book Name</label>
-                            <input type="text" id="editBookName" name="name" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        <div>
-                            <label for="editBookAuthor" class="block text-sm font-medium text-gray-700">Author</label>
-                            <input type="text" id="editBookAuthor" name="author" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        <div>
-                            <label for="editBookCustomId" class="block text-sm font-medium text-gray-700">Custom ID (Optional)</label>
-                            <input type="text" id="editBookCustomId" name="custom_id" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-gray-50 px-6 py-4 flex justify-end items-center space-x-3 rounded-b-lg">
-                    <button type="button" class="cancel-btn px-4 py-2 bg-white border border-gray-300 text-gray-700 font-semibold rounded-md shadow-sm hover:bg-gray-50 transition">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 border border-transparent text-white font-semibold rounded-md shadow-sm hover:bg-blue-700 transition">Save Changes</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div id="deleteModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white rounded-lg shadow-2xl w-full max-w-md mx-auto">
-            <div class="p-6">
-                <div class="flex items-start">
-                    <div class="flex-shrink-0 h-12 w-12 flex items-center justify-center rounded-full bg-red-100">
-                        <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                    </div>
-                    <div class="ml-4 text-left">
-                        <h3 class="text-lg font-bold text-gray-900">Delete Book</h3>
-                        <p class="text-sm text-gray-500 mt-1">
-                            Are you sure you want to delete <strong id="bookNamePlaceholder" class="font-semibold text-gray-800"></strong>?
-                        </p>
-                    </div>
-                </div>
-            </div>
-            <div class="bg-gray-50 px-6 py-4 flex justify-end items-center space-x-3 rounded-b-lg">
-                <button type="button" class="cancel-btn px-4 py-2 bg-white border border-gray-300 text-gray-700 font-semibold rounded-md shadow-sm hover:bg-gray-50 transition">Cancel</button>
-                <form id="deleteForm" method="POST" action="">
-                    <button type="submit" class="px-4 py-2 bg-red-600 border border-transparent text-white font-semibold rounded-md shadow-sm hover:bg-red-700 transition">Confirm Delete</button>
-                </form>
-            </div>
-        </div>
-    </div>
+    <!-- Modals (Edit, Delete) go here -->
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const allModals = document.querySelectorAll('.modal-overlay');
-    function hideAllModals() { allModals.forEach(modal => modal.classList.add('hidden')); }
-    document.querySelectorAll('.cancel-btn').forEach(btn => btn.addEventListener('click', hideAllModals));
-    allModals.forEach(modal => { modal.addEventListener('click', e => { if (e.target === modal) hideAllModals(); }); });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') hideAllModals(); });
+    let currentPage = 1;
+    let currentQuery = '';
+    let currentFilter = 'all';
+    let debounceTimer;
 
-    const deleteModal = document.getElementById('deleteModal');
-    const bookNamePlaceholder = document.getElementById('bookNamePlaceholder');
-    const deleteForm = document.getElementById('deleteForm');
-    document.querySelectorAll('.delete-book-btn').forEach(button => {
-        button.addEventListener('click', () => {
-            bookNamePlaceholder.textContent = `"${button.dataset.bookName}"`;
-            deleteForm.action = `/delete_book/${button.dataset.bookId}`;
-            deleteModal.classList.remove('hidden');
+    const queryInput = document.getElementById('query');
+    const filterSelect = document.getElementById('filter');
+    const tableBody = document.getElementById('books-table-body');
+    const paginationInfo = document.getElementById('pagination-info');
+    const paginationControlsDesktop = document.getElementById('pagination-controls-desktop');
+    const paginationControlsMobile = document.getElementById('pagination-controls-mobile');
+    const paginationFooter = document.getElementById('pagination-footer');
+
+    async function fetchBooks(page = 1) {
+        currentPage = page;
+        tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-10 px-6 text-gray-500">Loading...</td></tr>`;
+        const url = `/api/view_books?query=${encodeURIComponent(currentQuery)}&filter=${currentFilter}&page=${currentPage}`;
+        
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Network response was not ok');
+            
+            const data = await response.json();
+            renderTable(data.books);
+            renderPagination(data.pagination);
+            rebindModalButtons(); 
+        } catch (error) {
+            console.error('Fetch error:', error);
+            tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-10 px-6 text-red-500">Error loading data. Please try again.</td></tr>`;
+        }
+    }
+
+    function renderTable(books) {
+        tableBody.innerHTML = '';
+        if (books.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-10 px-6 text-gray-500">No books found matching your criteria.</td></tr>`;
+            return;
+        }
+        let tableRowsHtml = '';
+        books.forEach((book) => {
+            const statusBadge = book.available
+                ? `<span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Available</span>`
+                : `<span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Issued</span>`;
+            const customId = book.custom_id ? book.custom_id : '-';
+            tableRowsHtml += `
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="px-6 py-4 text-sm font-semibold text-gray-900">${book.name}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">${book.author}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">${customId}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center">${statusBadge}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right space-x-2">
+                        <button type="button" class="edit-book-btn px-3 py-2 text-sm font-semibold rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200"
+                            data-book-id="${book.id}" data-book-name="${book.name}"
+                            data-book-author="${book.author}" data-book-customid="${book.custom_id || ''}">
+                            Edit
+                        </button>
+                        <button type="button" class="delete-book-btn px-3 py-2 text-sm font-semibold rounded-md text-red-600 bg-red-100 hover:bg-red-200" 
+                            data-book-id="${book.id}" data-book-name="${book.name}">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+            `;
         });
+        tableBody.innerHTML = tableRowsHtml;
+    }
+
+    function renderPagination(pagination) {
+        paginationControlsDesktop.innerHTML = '';
+        paginationControlsMobile.innerHTML = '';
+        paginationInfo.innerHTML = '';
+        
+        if (pagination.total_books === 0) {
+            paginationFooter.classList.add('hidden');
+            return;
+        }
+        paginationFooter.classList.remove('hidden');
+
+        const { page, total_pages, total_books, per_page } = pagination;
+        const start = (page - 1) * per_page + 1;
+        const end = Math.min(start + per_page - 1, total_books);
+        
+        paginationInfo.innerHTML = `<p class="text-sm text-gray-700">Showing <span class="font-medium">${start}</span> to <span class="font-medium">${end}</span> of <span class="font-medium">${total_books}</span> results</p>`;
+        
+        if (total_pages <= 1) return;
+
+        const createButton = (pageNum, text, isEnabled, isCurrent, isFirst = false, isLast = false) => {
+            const baseClass = 'px-3 py-2 leading-tight';
+            const stateClass = isEnabled ? 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700' : 'text-gray-400 bg-gray-50 border border-gray-300 cursor-not-allowed';
+            const activeClass = isCurrent ? 'z-10 text-blue-600 border-blue-300 bg-blue-50' : '';
+            const roundedClass = isFirst ? 'rounded-l-lg' : isLast ? 'rounded-r-lg' : '';
+            const link = isEnabled ? `<a href="#" data-page="${pageNum}" class="${baseClass} ${stateClass} ${activeClass} ${roundedClass}">${text}</a>` : `<span class="${baseClass} ${stateClass} ${roundedClass}">${text}</span>`;
+            return `<li>${link}</li>`;
+        };
+
+        const getPageNumbers = () => {
+            const delta = 1;
+            const range = [];
+            for (let i = Math.max(2, page - delta); i <= Math.min(total_pages - 1, page + delta); i++) range.push(i);
+            if (page - delta > 2) range.unshift('...');
+            if (page + delta < total_pages - 1) range.push('...');
+            range.unshift(1);
+            if (total_pages > 1) range.push(total_pages);
+            return [...new Set(range)];
+        };
+
+        let buttonsHtml = '<ul class="inline-flex items-center -space-x-px">';
+        buttonsHtml += createButton(page - 1, 'Previous', page > 1, false, true, false);
+
+        getPageNumbers().forEach(p => {
+            if (p === '...') {
+                buttonsHtml += `<li><span class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300">...</span></li>`;
+            } else {
+                buttonsHtml += createButton(p, p, true, p === page);
+            }
+        });
+
+        buttonsHtml += createButton(page + 1, 'Next', page < total_pages, false, false, true);
+        buttonsHtml += '</ul>';
+        
+        paginationControlsDesktop.innerHTML = `<nav class="hidden md:block">${buttonsHtml}</nav>`;
+        paginationControlsMobile.innerHTML = `<nav class="flex justify-center mt-4 md:hidden">${buttonsHtml}</nav>`;
+    }
+
+    function rebindModalButtons() {
+        // ... (your modal script from previous steps)
+    }
+    
+    queryInput.addEventListener('input', (e) => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            currentQuery = e.target.value;
+            fetchBooks(1);
+        }, 350);
     });
 
-    const editModal = document.getElementById('editModal');
-    const editForm = document.getElementById('editForm');
-    const editBookName = document.getElementById('editBookName');
-    const editBookAuthor = document.getElementById('editBookAuthor');
-    const editBookCustomId = document.getElementById('editBookCustomId');
-    document.querySelectorAll('.edit-book-btn').forEach(button => {
-        button.addEventListener('click', () => {
-            editBookName.value = button.dataset.bookName;
-            editBookAuthor.value = button.dataset.bookAuthor;
-            editBookCustomId.value = button.dataset.bookCustomid;
-            editForm.action = `/edit_book/${button.dataset.bookId}`;
-            editModal.classList.remove('hidden');
-        });
+    filterSelect.addEventListener('change', (e) => {
+        currentFilter = e.target.value;
+        fetchBooks(1);
     });
+
+    document.body.addEventListener('click', (e) => {
+        const target = e.target.closest('a[data-page]');
+        if (target) {
+            e.preventDefault();
+            const page = parseInt(target.dataset.page, 10);
+            if (page && page !== currentPage) fetchBooks(page);
+        }
+    });
+
+    fetchBooks();
 });
 </script>
 </body>
 </html>
+

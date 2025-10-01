@@ -12,6 +12,10 @@
         .nav-link { transition: background-color 0.2s, color 0.2s; }
         .nav-link:hover, .nav-link-active { background-color: #2d3748; }
         .modal-overlay { transition: opacity 0.2s ease-in-out; }
+        /* Custom classes for pagination buttons */
+        .page-link { @apply px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700; }
+        .page-link-active { @apply z-10 px-3 py-2 leading-tight text-blue-600 border border-blue-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700; }
+        .page-link-disabled { @apply px-3 py-2 leading-tight text-gray-400 bg-gray-50 border border-gray-300 cursor-not-allowed; }
     </style>
 </head>
 <body class="min-h-screen">
@@ -103,33 +107,29 @@
             {% endwith %}
 
             <div class="mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                <form method="GET" action="{{ url_for('view_students') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <div class="md:col-span-2">
                         <label for="query" class="block text-sm font-medium text-gray-700 mb-1">Search by Name or Admission No</label>
-                        <input type="text" name="query" id="query" value="{{ search_query or '' }}" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-700 shadow-sm" placeholder="e.g., John Doe or 23CS001...">
+                        <input type="text" name="query" id="query" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-700 shadow-sm" placeholder="e.g., John Doe or 23CS001...">
                     </div>
                     <div>
-                        <label for="batch" class="block text-sm font-medium text-gray-700 mb-1">Filter by Batch</label>
-                        <select name="batch" id="batch" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-700 shadow-sm">
+                        <label for="batch-filter" class="block text-sm font-medium text-gray-700 mb-1">Filter by Batch</label>
+                        <select name="batch" id="batch-filter" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-700 shadow-sm">
                             <option value="all">All Batches</option>
                             {% for b in batches %}
-                                <option value="{{ b.batch }}" {% if current_batch == b.batch %}selected{% endif %}>{{ b.batch }}</option>
+                                <option value="{{ b.batch }}">{{ b.batch }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div>
-                        <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Filter by Status</label>
-                        <select name="status" id="status" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-700 shadow-sm">
-                            <option value="all" {% if current_status == 'all' %}selected{% endif %}>All Statuses</option>
-                            <option value="approved" {% if current_status == 'approved' %}selected{% endif %}>Approved</option>
-                            <option value="pending" {% if current_status == 'pending' %}selected{% endif %}>Pending / Not Registered</option>
+                        <label for="status-filter" class="block text-sm font-medium text-gray-700 mb-1">Filter by Status</label>
+                        <select name="status" id="status-filter" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-700 shadow-sm">
+                            <option value="all">All Statuses</option>
+                            <option value="approved">Approved</option>
+                            <option value="pending">Pending / Not Registered</option>
                         </select>
                     </div>
-                    <div class="md:col-span-4 flex justify-end gap-3">
-                         <a href="{{ url_for('view_students') }}" class="px-5 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition duration-150">Reset</a>
-                        <button type="submit" class="px-5 py-2.5 bg-gray-800 text-white font-semibold rounded-lg shadow-md hover:bg-gray-900 transition duration-150">Apply Filters</button>
-                    </div>
-                </form>
+                </div>
             </div>
 
             <div class="overflow-x-auto bg-white rounded-xl shadow-lg">
@@ -143,46 +143,18 @@
                             <th class="px-6 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% if students %}
-                            {% for student in students %}
-                            <tr class="hover:bg-gray-50 transition duration-150">
-                                <td class="px-6 py-4 text-sm font-semibold text-gray-900">{{ student.name }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono">{{ student.admission_no }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ student.batch }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    {% if student.is_approved == 1 %}
-                                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Approved</span>
-                                    {% elif student.is_approved == 0 %}
-                                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>
-                                    {% else %}
-                                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Not Registered</span>
-                                    {% endif %}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right space-x-2">
-                                    <button type="button" class="edit-student-btn px-3 py-2 text-sm font-semibold rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200 transition"
-                                        data-student-id="{{ student.id }}" data-student-name="{{ student.name }}"
-                                        data-student-admission="{{ student.admission_no }}" data-student-batch="{{ student.batch }}">
-                                        Edit
-                                    </button>
-                                    <button type="button" class="reset-pass-btn px-3 py-2 text-sm font-semibold rounded-md text-purple-600 bg-purple-100 hover:bg-purple-200 transition"
-                                        data-student-id="{{ student.id }}" data-student-name="{{ student.name }}">
-                                        Reset Pass
-                                    </button>
-                                    <button type="button" class="delete-student-btn px-3 py-2 text-sm font-semibold rounded-md text-red-600 bg-red-100 hover:bg-red-200 transition" 
-                                        data-student-id="{{ student.id }}" 
-                                        data-student-name="{{ student.name }}">
-                                        Delete
-                                    </button>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr><td colspan="5" class="text-center py-10 px-6 text-gray-500">No Students Found</td></tr>
-                        {% endif %}
+                    <tbody id="students-table-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Student rows will be inserted by JavaScript -->
                     </tbody>
                 </table>
             </div>
+            
+            <div class="mt-4 flex flex-col md:flex-row justify-between items-center space-y-2 md:space-y-0" id="pagination-footer">
+                <div id="pagination-info"></div>
+                <div id="pagination-controls-desktop"></div>
+            </div>
+            <div id="pagination-controls-mobile"></div>
+            
             <div class="mt-8 md:hidden">
                 <a href="{{ url_for('logout') }}" class="flex items-center justify-center p-3 rounded-lg text-red-400 font-medium hover:bg-red-500 hover:text-white border border-red-400 transition">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
@@ -272,79 +244,250 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Generic Modal Handling ---
-    const allModals = document.querySelectorAll('.modal-overlay');
-    function hideAllModals() { allModals.forEach(modal => modal.classList.add('hidden')); }
-    document.querySelectorAll('.cancel-btn').forEach(btn => btn.addEventListener('click', hideAllModals));
-    allModals.forEach(modal => { modal.addEventListener('click', e => { if (e.target === modal) hideAllModals(); }); });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') hideAllModals(); });
+    // --- State & Config ---
+    let currentPage = 1;
+    let currentQuery = '';
+    let currentBatch = 'all';
+    let currentStatus = 'all';
+    let debounceTimer;
 
-    // --- Delete Modal ---
-    const deleteModal = document.getElementById('deleteModal');
-    const deleteForm = document.getElementById('deleteForm');
-    document.querySelectorAll('.delete-student-btn').forEach(button => {
-        button.addEventListener('click', () => {
-            deleteModal.querySelector('#studentNamePlaceholder').textContent = `"${button.dataset.studentName}"`;
-            deleteForm.action = `/delete_student/${button.dataset.studentId}`;
-            deleteModal.classList.remove('hidden');
-        });
-    });
+    // --- Element References ---
+    const queryInput = document.getElementById('query');
+    const batchFilter = document.getElementById('batch-filter');
+    const statusFilter = document.getElementById('status-filter');
+    const tableBody = document.getElementById('students-table-body');
+    const paginationInfo = document.getElementById('pagination-info');
+    const paginationControlsDesktop = document.getElementById('pagination-controls-desktop');
+    const paginationControlsMobile = document.getElementById('pagination-controls-mobile');
+    const paginationFooter = document.getElementById('pagination-footer');
 
-    // --- Edit Modal ---
-    const editModal = document.getElementById('editModal');
-    const editForm = document.getElementById('editForm');
-    document.querySelectorAll('.edit-student-btn').forEach(button => {
-        button.addEventListener('click', () => {
-            editForm.querySelector('#editStudentName').value = button.dataset.studentName;
-            editForm.querySelector('#editStudentAdmission').value = button.dataset.studentAdmission;
-            editForm.querySelector('#editStudentBatch').value = button.dataset.studentBatch;
-            editForm.action = `/edit_student/${button.dataset.studentId}`;
-            editModal.classList.remove('hidden');
-        });
-    });
+    // --- Main Fetch Function ---
+    async function fetchStudents(page = 1) {
+        currentPage = page;
+        tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-10 px-6 text-gray-500">Loading...</td></tr>`;
+        const url = `/api/view_students?query=${encodeURIComponent(currentQuery)}&batch=${currentBatch}&status=${currentStatus}&page=${currentPage}`;
+        
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Network response was not ok');
+            
+            const data = await response.json();
+            renderTable(data.students);
+            renderPagination(data.pagination);
+            rebindModalButtons(); 
+        } catch (error) {
+            console.error('Fetch error:', error);
+            tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-10 px-6 text-red-500">Error loading data. Please try again.</td></tr>`;
+        }
+    }
 
-    // --- Reset Password Modal ---
-    const resetPassModal = document.getElementById('resetPassModal');
-    const resetPassForm = document.getElementById('resetPassForm');
-    const passwordInput = resetPassForm.querySelector('#new_password');
-    const confirmInput = resetPassForm.querySelector('#confirm_password');
-    const feedback = resetPassForm.querySelector('#password-feedback');
-    const resetSubmitBtn = resetPassForm.querySelector('#resetSubmitBtn');
+    // --- Rendering Functions ---
+    function renderTable(students) {
+        tableBody.innerHTML = '';
+        if (students.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-10 px-6 text-gray-500">No students found matching your criteria.</td></tr>`;
+            return;
+        }
 
-    document.querySelectorAll('.reset-pass-btn').forEach(button => {
-        button.addEventListener('click', () => {
-            resetPassForm.querySelector('#resetStudentNamePlaceholder').textContent = button.dataset.studentName;
-            resetPassForm.action = `/reset_student_password/${button.dataset.studentId}`;
-            resetPassForm.reset(); 
-            feedback.textContent = '';
-            resetSubmitBtn.disabled = false;
-            resetSubmitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            resetPassModal.classList.remove('hidden');
-        });
-    });
-
-    function validateResetPassword() {
-        if (passwordInput.value.length > 0 && confirmInput.value.length > 0) {
-            if (passwordInput.value !== confirmInput.value) {
-                feedback.textContent = 'Passwords do not match.';
-                feedback.className = 'text-xs mt-1.5 block text-red-600';
-                resetSubmitBtn.disabled = true;
-                resetSubmitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        let tableRowsHtml = '';
+        students.forEach(student => {
+            let statusBadge = '';
+            if (student.is_approved === 1) {
+                statusBadge = `<span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Approved</span>`;
+            } else if (student.is_approved === 0) {
+                statusBadge = `<span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>`;
             } else {
-                feedback.textContent = 'Passwords match.';
-                feedback.className = 'text-xs mt-1.5 block text-green-600';
+                statusBadge = `<span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Not Registered</span>`;
+            }
+
+            tableRowsHtml += `
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="px-6 py-4 text-sm font-semibold text-gray-900">${student.name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono">${student.admission_no}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.batch}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center">${statusBadge}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right space-x-2">
+                        <button type="button" class="edit-student-btn px-3 py-2 text-sm font-semibold rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200"
+                            data-student-id="${student.id}" data-student-name="${student.name}"
+                            data-student-admission="${student.admission_no}" data-student-batch="${student.batch}">
+                            Edit
+                        </button>
+                        <button type="button" class="reset-pass-btn px-3 py-2 text-sm font-semibold rounded-md text-purple-600 bg-purple-100 hover:bg-purple-200"
+                            data-student-id="${student.id}" data-student-name="${student.name}">
+                            Reset Pass
+                        </button>
+                        <button type="button" class="delete-student-btn px-3 py-2 text-sm font-semibold rounded-md text-red-600 bg-red-100 hover:bg-red-200" 
+                            data-student-id="${student.id}" data-student-name="${student.name}">
+                            Delete
+                        </button>
+                    </td>
+                </tr>`;
+        });
+        tableBody.innerHTML = tableRowsHtml;
+    }
+
+    function renderPagination(pagination) {
+        paginationControlsDesktop.innerHTML = '';
+        paginationControlsMobile.innerHTML = '';
+        paginationInfo.innerHTML = '';
+        
+        if (pagination.total_students === 0) {
+            paginationFooter.classList.add('hidden');
+            return;
+        }
+        paginationFooter.classList.remove('hidden');
+
+        const { page, total_pages, total_students, per_page } = pagination;
+        const start = (page - 1) * per_page + 1;
+        const end = Math.min(start + per_page - 1, total_students);
+        
+        paginationInfo.innerHTML = `<p class="text-sm text-gray-700">Showing <span class="font-medium">${start}</span> to <span class="font-medium">${end}</span> of <span class="font-medium">${total_students}</span> results</p>`;
+        
+        if (total_pages <= 1) return;
+
+        const createButton = (pageNum, text, isEnabled, isCurrent, isFirst = false, isLast = false) => {
+            const baseClass = 'px-3 py-2 leading-tight';
+            let stateClass = isEnabled ? 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700' : 'text-gray-400 bg-gray-50 border border-gray-300 cursor-not-allowed';
+            if(isCurrent) { stateClass = 'z-10 text-blue-600 border-blue-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700'; }
+            const roundedClass = isFirst ? 'rounded-l-lg' : isLast ? 'rounded-r-lg' : '';
+            const link = isEnabled ? `<a href="#" data-page="${pageNum}" class="${baseClass} ${stateClass} ${roundedClass}">${text}</a>` : `<span class="${baseClass} ${stateClass} ${roundedClass}">${text}</span>`;
+            return `<li>${link}</li>`;
+        };
+
+        const getPageNumbers = () => {
+            const delta = 1;
+            const range = [];
+            for (let i = Math.max(2, page - delta); i <= Math.min(total_pages - 1, page + delta); i++) range.push(i);
+            if (page - delta > 2) range.unshift('...');
+            if (page + delta < total_pages - 1) range.push('...');
+            range.unshift(1);
+            if (total_pages > 1) range.push(total_pages);
+            return [...new Set(range)];
+        };
+
+        let buttonsHtml = '<ul class="inline-flex items-center -space-x-px">';
+        buttonsHtml += createButton(page - 1, 'Previous', page > 1, false, true, false);
+        getPageNumbers().forEach(p => {
+            if (p === '...') {
+                buttonsHtml += `<li><span class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300">...</span></li>`;
+            } else {
+                buttonsHtml += createButton(p, p, true, p === page);
+            }
+        });
+        buttonsHtml += createButton(page + 1, 'Next', page < total_pages, false, false, true);
+        buttonsHtml += '</ul>';
+        
+        paginationControlsDesktop.innerHTML = `<nav class="hidden md:block">${buttonsHtml}</nav>`;
+        paginationControlsMobile.innerHTML = `<nav class="flex justify-center mt-4 md:hidden">${buttonsHtml}</nav>`;
+    }
+
+    function rebindModalButtons() {
+        // --- Generic Modal Handling ---
+        const allModals = document.querySelectorAll('.modal-overlay');
+        function hideAllModals() { allModals.forEach(modal => modal.classList.add('hidden')); }
+        document.querySelectorAll('.cancel-btn').forEach(btn => btn.addEventListener('click', hideAllModals));
+        allModals.forEach(modal => { modal.addEventListener('click', e => { if (e.target === modal) hideAllModals(); }); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') hideAllModals(); });
+
+        // --- Delete Modal ---
+        const deleteModal = document.getElementById('deleteModal');
+        const deleteForm = document.getElementById('deleteForm');
+        document.querySelectorAll('.delete-student-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                deleteModal.querySelector('#studentNamePlaceholder').textContent = `"${button.dataset.studentName}"`;
+                deleteForm.action = `/delete_student/${button.dataset.studentId}`;
+                deleteModal.classList.remove('hidden');
+            });
+        });
+
+        // --- Edit Modal ---
+        const editModal = document.getElementById('editModal');
+        const editForm = document.getElementById('editForm');
+        document.querySelectorAll('.edit-student-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                editForm.querySelector('#editStudentName').value = button.dataset.studentName;
+                editForm.querySelector('#editStudentAdmission').value = button.dataset.studentAdmission;
+                editForm.querySelector('#editStudentBatch').value = button.dataset.studentBatch;
+                editForm.action = `/edit_student/${button.dataset.studentId}`;
+                editModal.classList.remove('hidden');
+            });
+        });
+
+        // --- Reset Password Modal ---
+        const resetPassModal = document.getElementById('resetPassModal');
+        const resetPassForm = document.getElementById('resetPassForm');
+        const passwordInput = resetPassForm.querySelector('#new_password');
+        const confirmInput = resetPassForm.querySelector('#confirm_password');
+        const feedback = resetPassForm.querySelector('#password-feedback');
+        const resetSubmitBtn = resetPassForm.querySelector('#resetSubmitBtn');
+
+        document.querySelectorAll('.reset-pass-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                resetPassForm.querySelector('#resetStudentNamePlaceholder').textContent = button.dataset.studentName;
+                resetPassForm.action = `/reset_student_password/${button.dataset.studentId}`;
+                resetPassForm.reset(); 
+                feedback.textContent = '';
+                resetSubmitBtn.disabled = false;
+                resetSubmitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                resetPassModal.classList.remove('hidden');
+            });
+        });
+
+        function validateResetPassword() {
+            if (passwordInput.value.length > 0 && confirmInput.value.length > 0) {
+                if (passwordInput.value !== confirmInput.value) {
+                    feedback.textContent = 'Passwords do not match.';
+                    feedback.className = 'text-xs mt-1.5 block text-red-600';
+                    resetSubmitBtn.disabled = true;
+                    resetSubmitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    feedback.textContent = 'Passwords match.';
+                    feedback.className = 'text-xs mt-1.5 block text-green-600';
+                    resetSubmitBtn.disabled = false;
+                    resetSubmitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            } else {
+                feedback.textContent = '';
                 resetSubmitBtn.disabled = false;
                 resetSubmitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
-        } else {
-            feedback.textContent = '';
-            resetSubmitBtn.disabled = false;
-            resetSubmitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
+        passwordInput.addEventListener('keyup', validateResetPassword);
+        confirmInput.addEventListener('keyup', validateResetPassword);
     }
-    passwordInput.addEventListener('keyup', validateResetPassword);
-    confirmInput.addEventListener('keyup', validateResetPassword);
+    
+    // --- Event Listeners ---
+    queryInput.addEventListener('input', (e) => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            currentQuery = e.target.value;
+            fetchStudents(1);
+        }, 350);
+    });
+
+    batchFilter.addEventListener('change', (e) => {
+        currentBatch = e.target.value;
+        fetchStudents(1);
+    });
+
+    statusFilter.addEventListener('change', (e) => {
+        currentStatus = e.target.value;
+        fetchStudents(1);
+    });
+
+    document.body.addEventListener('click', (e) => {
+        const target = e.target.closest('a[data-page]');
+        if (target && !target.classList.contains('page-link-disabled')) {
+            e.preventDefault();
+            const page = parseInt(target.dataset.page, 10);
+            if (page) fetchStudents(page);
+        }
+    });
+
+    // --- Initial Load ---
+    fetchStudents();
 });
 </script>
 </body>
 </html>
+

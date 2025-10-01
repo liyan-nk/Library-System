@@ -19,7 +19,7 @@ def dateformat(value, format='%d/%m/%y'):
         date_obj = datetime.datetime.strptime(value, '%Y-%m-%d')
         return date_obj.strftime(format)
     except (ValueError, TypeError):
-        # If the format is already different or it's not a valid date string, return it as is
+        # If the format is already different, return it as is
         return value
 # Secure configuration
 app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(24))
@@ -487,73 +487,9 @@ def add_book():
 @app.route("/view_books")
 @login_required 
 def view_books():
-    # --- CONFIGURATION ---
-    BOOKS_PER_PAGE = 15 
-
-    # Get current page number from URL, default to 1
-    page = request.args.get('page', 1, type=int)
-    
-    # Get search query and filter from URL arguments
-    query = request.args.get('query', '')
-    availability_filter = request.args.get('filter', 'all')
-    
-    # Base SQL query parts
-    base_sql = "FROM books"
-    count_sql = "SELECT COUNT(id) "
-    select_sql = "SELECT * "
-    params = []
-    
-    # Dynamically build the WHERE clause
-    conditions = []
-    if query:
-        search_term = f"%{query}%"
-        conditions.append("(name LIKE ? OR author LIKE ? OR custom_id LIKE ?)")
-        params.extend([search_term, search_term, search_term])
-        
-    if availability_filter == 'available':
-        conditions.append("available = 1")
-    elif availability_filter == 'issued':
-        conditions.append("available = 0")
-        
-    if conditions:
-        where_clause = " WHERE " + " AND ".join(conditions)
-        base_sql += where_clause
-    
-    # --- PAGINATION LOGIC ---
-    with get_connection() as conn:
-        # First, get the total count of books matching the filter
-        full_count_sql = count_sql + base_sql
-        total_books = conn.execute(full_count_sql, tuple(params)).fetchone()[0]
-        
-        # Calculate total pages
-        total_pages = 1
-        if total_books > 0:
-            total_pages = math.ceil(total_books / BOOKS_PER_PAGE)
-
-        # Ensure current page is within valid range
-        if page > total_pages:
-            page = total_pages
-        if page < 1:
-            page = 1
-
-        # Calculate the OFFSET for the query
-        offset = (page - 1) * BOOKS_PER_PAGE
-        
-        # Prepare the final query to get just one page of books
-        paginated_sql = select_sql + base_sql + " ORDER BY name ASC LIMIT ? OFFSET ?"
-        final_params = params + [BOOKS_PER_PAGE, offset]
-        
-        books = conn.execute(paginated_sql, tuple(final_params)).fetchall()
-        
-    return render_template("view_books.html", 
-                           books=books, 
-                           search_query=query, 
-                           current_filter=availability_filter,
-                           # --- NEW PAGINATION VARIABLES ---
-                           current_page=page,
-                           total_pages=total_pages,
-                           total_books=total_books,
-                           books_per_page=BOOKS_PER_PAGE)
+    # This route now just renders the page shell.
+    # The actual data will be loaded via JavaScript from the /api/view_books route.
+    return render_template("view_books.html")
 
 
 @app.route("/delete_book/<int:id>", methods=["POST"])
@@ -653,16 +589,25 @@ def add_student():
 @app.route("/view_students")
 @login_required 
 def view_students():
+    # This route now just renders the page shell and fetches batches for the filter.
+    with get_connection() as conn:
+        batches = conn.execute("SELECT DISTINCT batch FROM students ORDER BY batch ASC").fetchall()
+        
+    return render_template("view_students.html", batches=batches)
+
+@app.route("/api/view_students")
+@login_required
+def api_view_students():
+    STUDENTS_PER_PAGE = 15
+    page = request.args.get('page', 1, type=int)
     query = request.args.get('query', '')
     batch_filter = request.args.get('batch', 'all')
     status_filter = request.args.get('status', 'all')
+
+    base_sql = "FROM students s LEFT JOIN students_auth sa ON s.admission_no = sa.admission_no"
+    count_sql = "SELECT COUNT(s.id) "
+    select_sql = "SELECT s.id, s.admission_no, s.name, s.batch, sa.is_approved "
     
-    # Base SQL query
-    sql = """
-        SELECT s.id, s.admission_no, s.name, s.batch, sa.is_approved
-        FROM students s
-        LEFT JOIN students_auth sa ON s.admission_no = sa.admission_no
-    """
     params = []
     conditions = []
 
@@ -678,25 +623,40 @@ def view_students():
     if status_filter == 'approved':
         conditions.append("sa.is_approved = 1")
     elif status_filter == 'pending':
-        # Handles both pending (0) and not yet registered (NULL)
         conditions.append("(sa.is_approved = 0 OR sa.is_approved IS NULL)")
 
     if conditions:
-        sql += " WHERE " + " AND ".join(conditions)
-        
-    sql += " ORDER BY s.batch, s.name"
-
+        where_clause = " WHERE " + " AND ".join(conditions)
+        base_sql += where_clause
+    
     with get_connection() as conn:
-        students = conn.execute(sql, tuple(params)).fetchall()
-        # Fetch distinct batches for the filter dropdown
-        batches = conn.execute("SELECT DISTINCT batch FROM students ORDER BY batch ASC").fetchall()
+        full_count_sql = count_sql + base_sql
+        total_students = conn.execute(full_count_sql, tuple(params)).fetchone()[0]
         
-    return render_template("view_students.html", 
-                           students=students,
-                           batches=batches,
-                           search_query=query,
-                           current_batch=batch_filter,
-                           current_status=status_filter)
+        total_pages = 1
+        if total_students > 0:
+            total_pages = math.ceil(total_students / STUDENTS_PER_PAGE)
+
+        if page > total_pages and total_pages > 0: page = total_pages
+        if page < 1: page = 1
+
+        offset = (page - 1) * STUDENTS_PER_PAGE
+        
+        paginated_sql = select_sql + base_sql + " ORDER BY s.name ASC LIMIT ? OFFSET ?"
+        final_params = params + [STUDENTS_PER_PAGE, offset]
+        
+        students_data = conn.execute(paginated_sql, tuple(final_params)).fetchall()
+        students = [dict(row) for row in students_data]
+        
+    return jsonify({
+        'students': students,
+        'pagination': {
+            'page': page,
+            'total_pages': total_pages,
+            'total_students': total_students,
+            'per_page': STUDENTS_PER_PAGE
+        }
+    })
 
 @app.route("/delete_student/<int:id>", methods=["POST"])
 @login_required 
