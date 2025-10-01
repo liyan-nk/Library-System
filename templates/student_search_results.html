@@ -11,6 +11,7 @@
         .sidebar { background-color: #1a202c; }
         .nav-link { transition: background-color 0.2s, color 0.2s; }
         .nav-link:hover, .nav-link-active { background-color: #2d3748; }
+        .status-badge-available { background-color: #38a169; color: white; }
     </style>
 </head>
 <body class="min-h-screen">
@@ -47,15 +48,13 @@
         </div>
         
         <main class="flex-grow p-10">
-            <header class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center pb-4 border-b border-gray-200">
-                <div>
-                    <h1 class="text-4xl font-extrabold text-gray-800">Search Books</h1>
-                    <p class="text-gray-500 mt-1">Find books by title, author, or ID.</p>
-                </div>
+            <header class="mb-6 md:mb-8 flex flex-col md:flex-row justify-between items-start md:items-center pb-4 border-b border-gray-200">
+                <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-2 md:mb-0">Book Search</h1>
+                
                 {% if availability %}
-                <div class="text-right mt-4 md:mt-0">
-                    <p class="font-medium text-gray-600">Total Library Books: <span class="font-bold text-gray-900">{{ availability.total_count }}</span></p>
-                    <p class="font-medium text-green-600">Currently Available: <span class="font-bold">{{ availability.available_count }}</span></p>
+                <div class="flex flex-wrap gap-3 items-center">
+                    <span class="text-gray-600 font-medium">Total Books: <span class="text-lg font-bold text-gray-800">{{ availability.total_count }}</span></span>
+                    <span class="px-4 py-2 rounded-full status-badge-available text-base font-bold shadow-md">Available: {{ availability.available_count }}</span>
                 </div>
                 {% endif %}
             </header>

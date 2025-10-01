@@ -135,7 +135,7 @@
                         <tbody class="bg-white divide-y divide-gray-200">
                             {% for t in transactions %}
                             <tr class="{{ 'bg-red-50 hover:bg-red-100' if t.is_overdue else 'hover:bg-gray-50' }} transition duration-150">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{{ t.book_name }}</td>
+                                <td class="px-6 py-4 text-sm font-semibold text-gray-900">{{ t.book_name }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ t.student_name }} <span class="font-mono text-gray-400">({{ t.admission_no }})</span></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ t.issue_date }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm {{ 'font-bold text-red-700' if t.is_overdue else 'text-gray-500' }}">{{ t.due_date }}</td>

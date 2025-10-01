@@ -91,7 +91,7 @@
                             <tbody class="bg-white divide-y divide-gray-200">
                                 {% for loan in active_loans %}
                                 <tr class="hover:bg-gray-50 transition">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{{ loan.book_name }}</td>
+                                    <td class="px-6 py-4 text-sm font-semibold text-gray-900">{{ loan.book_name }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ loan.issue_date | dateformat }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm {{ 'overdue-text' if loan.is_overdue else 'text-gray-500' }}">{{ loan.due_date | dateformat }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
@@ -128,7 +128,7 @@
                             <tbody class="bg-white divide-y divide-gray-200">
                                 {% for loan in loan_history %}
                                 <tr class="hover:bg-gray-50 transition">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{{ loan.book_name }}</td>
+                                    <td class="px-6 py-4 text-sm font-semibold text-gray-700">{{ loan.book_name }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ loan.issue_date | dateformat }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ loan.return_date | dateformat }}</td>
                                 </tr>

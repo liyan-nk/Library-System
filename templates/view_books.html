@@ -54,15 +54,15 @@
 
                     <span class="text-xs uppercase text-gray-500 px-2 pt-3 pb-1 font-semibold block">User Management</span>
                     <a href="{{ url_for('approve_students') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
-                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a1 1 0 011-1h12a1 1 0 011 1v1h-14v-1z"></path></svg>
-                        Approve Students
-                    </a>
-                    <a href="{{ url_for('approve_students') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
                          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a1 1 0 011-1h12a1 1 0 011 1v1h-14v-1z"></path></svg>
                         <span>Approve Students</span>
                         {% if pending_count > 0 %}
                             <span class="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{{ pending_count }}</span>
                         {% endif %}
+                    </a>
+                    <a href="{{ url_for('view_students') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20v-2a3 3 0 00-5.356-1.857M12 10V6M9 6h6m2 5a4 4 0 11-8 0 4 4 0 018 0zM3 20a1 1 0 011-1h12a1 1 0 011 1v1h-14v-1z"></path></svg>
+                        View Students
                     </a>
                     </a>
                     <a href="{{ url_for('add_student') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
@@ -110,7 +110,7 @@
                     <div class="md:col-span-2">
                         <label for="query" class="block text-sm font-medium text-gray-700 mb-1">Search by Name, Author, or ID</label>
                         <div class="relative">
-                            <input type="text" name="query" id="query" value="{{ search_query or '' }}" class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-700 shadow-sm" placeholder="e.g., The Great Gatsby...">
+                            <input type="text" name="query" id="query" value="{{ search_query or '' }}" class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-700 shadow-sm" placeholder="e.g., The Art of Computer Programming">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></span>
                         </div>
                     </div>
@@ -146,7 +146,7 @@
                             {% for book in books %}
                             <tr class="hover:bg-gray-50 transition duration-150">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">{{ loop.index }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{{ book.name }}</td>
+                                <td class="px-6 py-4 text-sm font-semibold text-gray-900">{{ book.name }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ book.author }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{{ book.custom_id or '-' }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
