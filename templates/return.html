@@ -15,7 +15,7 @@
 </head>
 <body class="min-h-screen">
     <div class="flex">
-        <div class="sidebar w-full md:w-64 p-4 flex-shrink-0 md:flex md:flex-col md:h-screen">
+        <div class="sidebar w-full md:w-64 p-4 flex-shrink-0 md:flex md:flex-col md:h-screen md:sticky md:top-0 md:sticky md:top-0">
             <div class="flex-grow">
                 <h2 class="text-xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Librarian Portal</h2>
                 <nav class="flex flex-col space-y-1">
@@ -30,7 +30,7 @@
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                         Issue Book
                     </a>
-                    <a href="{{ url_for('return_book') }}" class="nav-link-active bg-blue-800 flex items-center p-2 rounded-lg text-gray-300 font-medium">
+                    <a href="{{ url_for('return_book') }}" class="nav-link-active bg-blue-600 flex items-center p-2 rounded-lg text-gray-300 font-medium">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         Return Book
                     </a>
@@ -46,15 +46,27 @@
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         Add New Book
                     </a>
+                    <a href="{{ url_for('active_issues') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Active Issues
+                    </a>
 
                     <span class="text-xs uppercase text-gray-500 px-2 pt-3 pb-1 font-semibold block">User Management</span>
                     <a href="{{ url_for('approve_students') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
-                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a1 1 0 011-1h12a1 1 0 011 1v1h-14v-1z"></path></svg>
-                        Approve Students
+                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a1 1 0 011-1h12a1 1 0 011 1v1h-14v-1z"></path></svg>
+                        <span>Approve Students</span>
+                        {% if pending_count > 0 %}
+                            <span class="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{{ pending_count }}</span>
+                        {% endif %}
                     </a>
                     <a href="{{ url_for('view_students') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20v-2a3 3 0 00-5.356-1.857M12 10V6M9 6h6m2 5a4 4 0 11-8 0 4 4 0 018 0zM3 20a1 1 0 011-1h12a1 1 0 011 1v1h-14v-1z"></path></svg>
                         View Students
+                    </a>
+                    </a>
+                    <a href="{{ url_for('add_student') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a1 1 0 011-1h12a1 1 0 011 1v1h-14v-1z"></path></svg>
+                        Add New Student
                     </a>
                 </nav>
             </div>

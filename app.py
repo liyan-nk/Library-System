@@ -8,6 +8,18 @@ from datetime import date, timedelta
 import hashlib 
 
 app = Flask(__name__)
+@app.template_filter('dateformat')
+def dateformat(value, format='%d/%m/%y'):
+    """Formats a date string from YYYY-MM-DD to a custom format."""
+    if value is None:
+        return "-"
+    try:
+        # Assumes the date is stored as YYYY-MM-DD in the database
+        date_obj = datetime.datetime.strptime(value, '%Y-%m-%d')
+        return date_obj.strftime(format)
+    except (ValueError, TypeError):
+        # If the format is already different or it's not a valid date string, return it as is
+        return value
 # Secure configuration
 app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(24))
 DB_NAME = "library.db"
@@ -55,7 +67,7 @@ def init_db():
         
         # --- Database Schema Creation ---
         
-        # Books Table
+        # Books Table (No change)
         cursor.execute("""CREATE TABLE IF NOT EXISTS books (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             custom_id TEXT UNIQUE,
@@ -64,16 +76,16 @@ def init_db():
                             available BOOLEAN NOT NULL DEFAULT 1
                         )""")
         
-        # Students Table
+        # Students Table (No change)
         cursor.execute("""CREATE TABLE IF NOT EXISTS students (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             admission_no TEXT UNIQUE NOT NULL,
                             name TEXT NOT NULL,
                             batch TEXT NOT NULL
-                            -- DOB, phone, etc., would go here
                         )""")
         
-        # Transactions Table (with Foreign Keys and due_date)
+        # --- THIS IS THE UPDATED TABLE ---
+        # Transactions Table (with ON DELETE SET NULL)
         cursor.execute("""CREATE TABLE IF NOT EXISTS transactions (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             book_id INTEGER, 
@@ -82,10 +94,10 @@ def init_db():
                             due_date TEXT NOT NULL,  
                             return_date TEXT,
                             FOREIGN KEY(book_id) REFERENCES books(id) ON DELETE SET NULL,
-                            FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE CASCADE
+                            FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE SET NULL
                         )""")
         
-        # Student Authentication Table (Note: is_approved is the key here)
+        # Student Authentication Table (No change)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS students_auth (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -152,7 +164,28 @@ def logout():
 @app.route("/index")
 @login_required 
 def index():
-    return render_template("index.html")
+    with get_connection() as conn:
+        stats = conn.execute("""
+            SELECT
+                (SELECT COUNT(id) FROM books) AS total_books,
+                (SELECT COUNT(id) FROM students) AS total_students,
+                (SELECT COUNT(id) FROM transactions WHERE return_date IS NULL) AS active_loans
+        """).fetchone()
+
+        overdue_loans = conn.execute("""
+            SELECT t.id, b.name AS book_name, s.name AS student_name, s.admission_no, t.due_date, t.issue_date
+            FROM transactions t
+            JOIN books b ON t.book_id = b.id
+            JOIN students s ON t.student_id = s.id
+            WHERE t.return_date IS NULL AND t.due_date < date('now')
+            ORDER BY t.due_date ASC
+        """).fetchall()
+
+    return render_template("index.html", 
+                           total_books=stats['total_books'],
+                           total_students=stats['total_students'],
+                           active_loans=stats['active_loans'],
+                           overdue_loans=overdue_loans)
 
 # ----------------- STUDENT AUTH DECORATOR AND ROUTES -----------------
 
@@ -263,30 +296,50 @@ def student_dashboard():
     student_adm_no = session.get('student_adm_no')
     
     with get_connection() as conn:
+        # Get the student's primary ID for queries
+        student_record = conn.execute("SELECT id, name, batch FROM students WHERE admission_no=?", (student_adm_no,)).fetchone()
+        
+        if not student_record:
+            # This is a safeguard in case the student record is somehow deleted
+            flash("Could not find your student profile.", "danger")
+            return redirect(url_for('student_logout'))
+        
+        student_id = student_record['id']
+
+        # Query for active loans (unchanged)
         active_loans = conn.execute("""
             SELECT t.id, t.issue_date, t.due_date, 
                    COALESCE(b.name, '[DELETED BOOK]') AS book_name, 
                    COALESCE(b.custom_id, '-') AS custom_id,
                    t.due_date < date('now') AS is_overdue
             FROM transactions t
-            JOIN students s ON t.student_id = s.id
             LEFT JOIN books b ON t.book_id = b.id
-            WHERE s.admission_no = ? AND t.return_date IS NULL
+            WHERE t.student_id = ? AND t.return_date IS NULL
             ORDER BY t.due_date ASC
-        """, (student_adm_no,)).fetchall()
+        """, (student_id,)).fetchall()
         
+        # --- NEW QUERY ---
+        # Query for loan history (returned books)
+        loan_history = conn.execute("""
+            SELECT t.issue_date, t.return_date, COALESCE(b.name, '[DELETED BOOK]') AS book_name
+            FROM transactions t
+            LEFT JOIN books b ON t.book_id = b.id
+            WHERE t.student_id = ? AND t.return_date IS NOT NULL
+            ORDER BY t.return_date DESC
+        """, (student_id,)).fetchall()
+
+        # Query for book availability (unchanged)
         book_availability = conn.execute("""
             SELECT SUM(CASE WHEN available = 1 THEN 1 ELSE 0 END) AS available_count,
                    COUNT(id) AS total_count
             FROM books
         """).fetchone()
 
-        student_info = conn.execute("SELECT name, batch FROM students WHERE admission_no=?", (student_adm_no,)).fetchone()
-
     return render_template('student_dashboard.html', 
                            active_loans=active_loans, 
+                           loan_history=loan_history, # Pass new history data
                            availability=book_availability,
-                           student_info=student_info)
+                           student_info=student_record)
 
 
 # ----------------- STUDENT BOOK SEARCH ROUTE (FIXED) -----------------
@@ -466,7 +519,7 @@ def view_books():
                            search_query=query, 
                            current_filter=availability_filter)
 
-@app.route("/delete_book/<int:id>", methods=["GET", "POST"])
+@app.route("/delete_book/<int:id>", methods=["POST"])
 @login_required 
 def delete_book(id):
     try:
@@ -530,22 +583,33 @@ def edit_book(id):
 @app.route("/add_student", methods=["GET", "POST"])
 @login_required 
 def add_student():
-    # Librarian can still add a student profile manually if needed, 
-    # but the student must still register via the portal to get a password/auth record.
     if request.method == "POST":
         admission_no = request.form["admission_no"].strip().upper()
         name = request.form["name"].strip()
         batch = request.form["batch"]
+        password = request.form["password"] # New field
+        
         try:
             with get_connection() as conn:
+                # 1. Create the student profile
                 conn.execute("INSERT INTO students (admission_no, name, batch) VALUES (?, ?, ?)",
                              (admission_no, name, batch))
-            flash("Student profile added successfully! (Note: Student must still self-register for portal access)", "success")
+                
+                # 2. Hash the password and create the approved authentication record
+                hashed_pass = hash_password(password)
+                conn.execute("INSERT INTO students_auth (admission_no, password_hash, is_approved) VALUES (?, ?, 1)",
+                             (admission_no, hashed_pass))
+                             
+            flash("Student profile and portal account created successfully! They can now log in.", "success")
+            return redirect(url_for('add_student'))
+            
         except sqlite3.IntegrityError:
-            flash("Student with this Admission No already exists!", "danger")
+            flash(f"Student with Admission No '{admission_no}' already exists!", "danger")
         except Exception as e:
             flash(f"Error adding student: {str(e)}", "danger")
+            
         return redirect(url_for("add_student"))
+        
     return render_template("add_student.html")
 
 
@@ -597,7 +661,7 @@ def view_students():
                            current_batch=batch_filter,
                            current_status=status_filter)
 
-@app.route("/delete_student/<int:id>", methods=["GET", "POST"])
+@app.route("/delete_student/<int:id>", methods=["POST"])
 @login_required 
 def delete_student(id):
     try:
@@ -759,49 +823,44 @@ def return_book():
         return redirect(url_for("return_book"))
     return render_template("return.html")
 
-@app.route("/extend/<int:transaction_id>", methods=["GET", "POST"])
+@app.route("/extend/<int:transaction_id>", methods=["POST"])
 @login_required
 def extend_loan(transaction_id):
+    # Fetch the transaction to ensure it exists and to get the current due date
     with get_connection() as conn:
-        transaction = conn.execute("""
-            SELECT t.id, t.issue_date, t.due_date, 
-                   COALESCE(b.name, '[DELETED BOOK]') AS book_name, 
-                   COALESCE(s.name, '[DELETED STUDENT]') AS student_name,
-                   COALESCE(s.admission_no, 'N/A') AS admission_no
-            FROM transactions t
-            LEFT JOIN books b ON t.book_id = b.id
-            LEFT JOIN students s ON t.student_id = s.id
-            WHERE t.id = ? AND t.return_date IS NULL
-        """, (transaction_id,)).fetchone()
+        transaction = conn.execute(
+            "SELECT due_date FROM transactions WHERE id = ? AND return_date IS NULL",
+            (transaction_id,)
+        ).fetchone()
 
     if not transaction:
         flash("Active transaction not found or already returned.", "danger")
         return redirect(url_for("active_issues"))
 
-    if request.method == "POST":
-        new_due_date_str = request.form.get("new_due_date")
+    new_due_date_str = request.form.get("new_due_date")
+    
+    try:
+        new_due_date_obj = datetime.datetime.strptime(new_due_date_str, '%Y-%m-%d').date()
+        current_due_date_obj = datetime.datetime.strptime(transaction['due_date'], '%Y-%m-%d').date()
         
-        try:
-            new_due_date_obj = datetime.datetime.strptime(new_due_date_str, '%Y-%m-%d').date()
-            current_due_date_obj = datetime.datetime.strptime(transaction['due_date'], '%Y-%m-%d').date()
+        # Validation checks
+        if new_due_date_obj <= current_due_date_obj:
+            flash("New due date must be *after* the current due date.", "danger")
+        elif new_due_date_obj <= date.today():
+             flash("New due date must be in the future.", "danger")
+        else:
+            # Update the database if validation passes
+            with get_connection() as conn_update:
+                conn_update.execute("UPDATE transactions SET due_date=? WHERE id=?", 
+                                     (new_due_date_str, transaction_id))
+            flash(f"Loan for transaction #{transaction_id} extended successfully! New Due Date: {new_due_date_str}", "success")
             
-            if new_due_date_obj <= current_due_date_obj:
-                flash("New due date must be *after* the current due date.", "danger")
-            elif new_due_date_obj <= date.today():
-                 flash("New due date must be in the future.", "danger")
-            else:
-                with get_connection() as conn_update:
-                    conn_update.execute("UPDATE transactions SET due_date=? WHERE id=?", 
-                                         (new_due_date_str, transaction_id))
-                flash(f"Loan for '{transaction['book_name']}' extended successfully! New Due Date: {new_due_date_str}", "success")
-                return redirect(url_for("active_issues"))
-                
-        except ValueError:
-            flash("Invalid date format provided.", "danger")
-        except Exception as e:
-            flash(f"Error extending loan: {str(e)}", "danger")
+    except ValueError:
+        flash("Invalid date format provided.", "danger")
+    except Exception as e:
+        flash(f"Error extending loan: {str(e)}", "danger")
 
-    return render_template("extend_loan.html", transaction=transaction)
+    return redirect(url_for("active_issues"))
 
 @app.route("/active_issues")
 @login_required 
@@ -922,7 +981,41 @@ def lookup_student(admission_no):
     
     return jsonify({'name': 'Student not found.'}), 404
 
+@app.route("/reset_student_password/<int:id>", methods=["POST"])
+@login_required
+def reset_student_password(id):
+    with get_connection() as conn:
+        student = conn.execute("SELECT admission_no, name FROM students WHERE id = ?", (id,)).fetchone()
 
+    if not student:
+        flash("Student not found.", "danger")
+        return redirect(url_for('view_students'))
+
+    new_password = request.form.get('new_password')
+    if not new_password:
+        flash("Password cannot be empty.", "danger")
+        return redirect(url_for('view_students'))
+
+    try:
+        hashed_pass = hash_password(new_password)
+        with get_connection() as conn_update:
+            conn_update.execute("UPDATE students_auth SET password_hash = ? WHERE admission_no = ?", 
+                                (hashed_pass, student['admission_no']))
+        flash(f"Password for {student['name']} has been updated successfully.", "success")
+    except Exception as e:
+        flash(f"An error occurred while resetting the password: {str(e)}", "danger")
+
+    return redirect(url_for('view_students'))
+
+@app.context_processor
+def inject_pending_count():
+    """Injects the count of pending student approvals into all templates."""
+    with get_connection() as conn:
+        try:
+            count = conn.execute("SELECT COUNT(id) FROM students_auth WHERE is_approved = 0").fetchone()[0]
+            return dict(pending_count=count)
+        except:
+            return dict(pending_count=0)
 
 if __name__ == "__main__":
     app.run(debug=True)

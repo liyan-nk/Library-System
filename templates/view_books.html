@@ -10,13 +10,13 @@
         body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
         .sidebar { background-color: #1a202c; }
         .nav-link { transition: background-color 0.2s, color 0.2s; }
-        .nav-link:hover, .nav-link-active { background-color: #2d3748; color: white; }
+        .nav-link:hover, .nav-link-active { background-color: #2d3748; }
         .modal-overlay { transition: opacity 0.2s ease-in-out; }
     </style>
 </head>
 <body class="min-h-screen">
-    <div class="flex">
-        <div class="sidebar w-full md:w-64 p-4 flex-shrink-0 md:flex md:flex-col md:h-screen">
+    <div class="md:flex">
+        <div class="sidebar w-full md:w-64 p-4 flex-shrink-0 md:flex md:flex-col md:h-screen md:sticky md:top-0 md:sticky md:top-0">
             <div class="flex-grow">
                 <h2 class="text-xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Librarian Portal</h2>
                 <nav class="flex flex-col space-y-1">
@@ -39,7 +39,7 @@
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         Transaction History
                     </a>
-                    <a href="{{ url_for('view_books') }}" class="nav-link-active bg-blue-800 flex items-center p-2 rounded-lg text-gray-300 font-medium">
+                    <a href="{{ url_for('view_books') }}" class="nav-link-active bg-blue-600 flex items-center p-2 rounded-lg text-gray-300 font-medium">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.467 9.5 5.513 8 6.5c-1.832 1.458-2.578 3.849-1.996 6.136l.732 2.932m0 0l3.173 1.269a2 2 0 001.664 0l3.173-1.269.732-2.932c.582-2.287-.164-4.678-1.996-6.136-1.5-1.1-2.832-1.146-4-1.146z"></path></svg>
                         View Books
                     </a>
@@ -47,15 +47,27 @@
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         Add New Book
                     </a>
+                    <a href="{{ url_for('active_issues') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Active Issues
+                    </a>
 
                     <span class="text-xs uppercase text-gray-500 px-2 pt-3 pb-1 font-semibold block">User Management</span>
                     <a href="{{ url_for('approve_students') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
                          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a1 1 0 011-1h12a1 1 0 011 1v1h-14v-1z"></path></svg>
                         Approve Students
                     </a>
-                    <a href="{{ url_for('view_students') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20v-2a3 3 0 00-5.356-1.857M12 10V6M9 6h6m2 5a4 4 0 11-8 0 4 4 0 018 0zM3 20a1 1 0 011-1h12a1 1 0 011 1v1h-14v-1z"></path></svg>
-                        View Students
+                    <a href="{{ url_for('approve_students') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
+                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a1 1 0 011-1h12a1 1 0 011 1v1h-14v-1z"></path></svg>
+                        <span>Approve Students</span>
+                        {% if pending_count > 0 %}
+                            <span class="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{{ pending_count }}</span>
+                        {% endif %}
+                    </a>
+                    </a>
+                    <a href="{{ url_for('add_student') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a1 1 0 011-1h12a1 1 0 011 1v1h-14v-1z"></path></svg>
+                        Add New Student
                     </a>
                 </nav>
             </div>
@@ -66,7 +78,7 @@
                 </a>
             </div>
         </div>
-
+        
         <main class="flex-grow p-10">
             <header class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center pb-4 border-b border-gray-200">
                 <div>
@@ -99,9 +111,7 @@
                         <label for="query" class="block text-sm font-medium text-gray-700 mb-1">Search by Name, Author, or ID</label>
                         <div class="relative">
                             <input type="text" name="query" id="query" value="{{ search_query or '' }}" class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-700 shadow-sm" placeholder="e.g., The Great Gatsby...">
-                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                            </span>
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></span>
                         </div>
                     </div>
                     <div>
@@ -118,7 +128,6 @@
                     </div>
                 </form>
             </div>
-
 
             <div class="overflow-x-auto bg-white rounded-xl shadow-lg">
                 <table class="min-w-full divide-y divide-gray-200">
@@ -148,8 +157,16 @@
                                     {% endif %}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right space-x-2">
-                                    <a href="{{ url_for('edit_book', id=book.id) }}" class="px-3 py-2 text-sm font-semibold rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200 transition duration-150">Edit</a>
-                                    <button type="button" class="delete-book-btn px-3 py-2 text-sm font-semibold rounded-md text-red-600 bg-red-100 hover:bg-red-200 transition duration-150" data-book-id="{{ book.id }}" data-book-name="{{ book.name }}">
+                                    <button type="button" class="edit-book-btn px-3 py-2 text-sm font-semibold rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200 transition"
+                                        data-book-id="{{ book.id }}"
+                                        data-book-name="{{ book.name }}"
+                                        data-book-author="{{ book.author }}"
+                                        data-book-customid="{{ book.custom_id or '' }}">
+                                        Edit
+                                    </button>
+                                    <button type="button" class="delete-book-btn px-3 py-2 text-sm font-semibold rounded-md text-red-600 bg-red-100 hover:bg-red-200 transition" 
+                                        data-book-id="{{ book.id }}" 
+                                        data-book-name="{{ book.name }}">
                                         Delete
                                     </button>
                                 </td>
@@ -166,7 +183,41 @@
                     </tbody>
                 </table>
             </div>
+            <div class="mt-8 md:hidden">
+                <a href="{{ url_for('logout') }}" class="flex items-center justify-center p-3 rounded-lg text-red-400 font-medium hover:bg-red-500 hover:text-white border border-red-400 transition">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    Logout
+                </a>
+            </div>
         </main>
+    </div>
+
+    <div id="editModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-lg mx-auto">
+            <form id="editForm" method="POST" action="">
+                <div class="p-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Edit Book</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="editBookName" class="block text-sm font-medium text-gray-700">Book Name</label>
+                            <input type="text" id="editBookName" name="name" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="editBookAuthor" class="block text-sm font-medium text-gray-700">Author</label>
+                            <input type="text" id="editBookAuthor" name="author" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="editBookCustomId" class="block text-sm font-medium text-gray-700">Custom ID (Optional)</label>
+                            <input type="text" id="editBookCustomId" name="custom_id" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-6 py-4 flex justify-end items-center space-x-3 rounded-b-lg">
+                    <button type="button" class="cancel-btn px-4 py-2 bg-white border border-gray-300 text-gray-700 font-semibold rounded-md shadow-sm hover:bg-gray-50 transition">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 border border-transparent text-white font-semibold rounded-md shadow-sm hover:bg-blue-700 transition">Save Changes</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <div id="deleteModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
@@ -174,69 +225,57 @@
             <div class="p-6">
                 <div class="flex items-start">
                     <div class="flex-shrink-0 h-12 w-12 flex items-center justify-center rounded-full bg-red-100">
-                        <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                     </div>
                     <div class="ml-4 text-left">
                         <h3 class="text-lg font-bold text-gray-900">Delete Book</h3>
                         <p class="text-sm text-gray-500 mt-1">
-                            Are you sure you want to delete <strong id="bookNamePlaceholder" class="font-semibold text-gray-800"></strong>? This action cannot be undone.
+                            Are you sure you want to delete <strong id="bookNamePlaceholder" class="font-semibold text-gray-800"></strong>?
                         </p>
-                        <p class="text-xs text-red-600 mt-2">Note: You cannot delete a book that is currently issued out.</p>
                     </div>
                 </div>
             </div>
             <div class="bg-gray-50 px-6 py-4 flex justify-end items-center space-x-3 rounded-b-lg">
-                <button type="button" id="cancelDelete" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 font-semibold rounded-md shadow-sm hover:bg-gray-50 transition">Cancel</button>
-                <a id="confirmDeleteButton" href="#" class="px-4 py-2 bg-red-600 border border-transparent text-white font-semibold rounded-md shadow-sm hover:bg-red-700 transition">Confirm Delete</a>
+                <button type="button" class="cancel-btn px-4 py-2 bg-white border border-gray-300 text-gray-700 font-semibold rounded-md shadow-sm hover:bg-gray-50 transition">Cancel</button>
+                <form id="deleteForm" method="POST" action="">
+                    <button type="submit" class="px-4 py-2 bg-red-600 border border-transparent text-white font-semibold rounded-md shadow-sm hover:bg-red-700 transition">Confirm Delete</button>
+                </form>
             </div>
         </div>
     </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    const allModals = document.querySelectorAll('.modal-overlay');
+    function hideAllModals() { allModals.forEach(modal => modal.classList.add('hidden')); }
+    document.querySelectorAll('.cancel-btn').forEach(btn => btn.addEventListener('click', hideAllModals));
+    allModals.forEach(modal => { modal.addEventListener('click', e => { if (e.target === modal) hideAllModals(); }); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') hideAllModals(); });
+
     const deleteModal = document.getElementById('deleteModal');
     const bookNamePlaceholder = document.getElementById('bookNamePlaceholder');
-    const confirmDeleteButton = document.getElementById('confirmDeleteButton');
-    const cancelDeleteButton = document.getElementById('cancelDelete');
-    
-    // Function to show the modal
-    const showModal = () => {
-        deleteModal.classList.remove('hidden');
-    };
-
-    // Function to hide the modal
-    const hideModal = () => {
-        deleteModal.classList.add('hidden');
-    };
-
-    // Open modal when any delete button is clicked
+    const deleteForm = document.getElementById('deleteForm');
     document.querySelectorAll('.delete-book-btn').forEach(button => {
-        button.addEventListener('click', (event) => {
-            const bookId = button.getAttribute('data-book-id');
-            const bookName = button.getAttribute('data-book-name');
-            
-            bookNamePlaceholder.textContent = `"${bookName}"`;
-            confirmDeleteButton.href = `/delete_book/${bookId}`;
-            
-            showModal();
+        button.addEventListener('click', () => {
+            bookNamePlaceholder.textContent = `"${button.dataset.bookName}"`;
+            deleteForm.action = `/delete_book/${button.dataset.bookId}`;
+            deleteModal.classList.remove('hidden');
         });
     });
 
-    // Hide modal on cancel button click
-    cancelDeleteButton.addEventListener('click', hideModal);
-
-    // Hide modal on overlay click
-    deleteModal.addEventListener('click', (event) => {
-        if (event.target === deleteModal) {
-            hideModal();
-        }
-    });
-
-    // Hide modal on 'Escape' key press
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') {
-            hideModal();
-        }
+    const editModal = document.getElementById('editModal');
+    const editForm = document.getElementById('editForm');
+    const editBookName = document.getElementById('editBookName');
+    const editBookAuthor = document.getElementById('editBookAuthor');
+    const editBookCustomId = document.getElementById('editBookCustomId');
+    document.querySelectorAll('.edit-book-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            editBookName.value = button.dataset.bookName;
+            editBookAuthor.value = button.dataset.bookAuthor;
+            editBookCustomId.value = button.dataset.bookCustomid;
+            editForm.action = `/edit_book/${button.dataset.bookId}`;
+            editModal.classList.remove('hidden');
+        });
     });
 });
 </script>

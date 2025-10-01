@@ -10,30 +10,17 @@
         body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
         .sidebar { background-color: #1a202c; }
         .nav-link { transition: background-color 0.2s; }
-        .nav-link:hover { background-color: #2d3748; }
-        .status-badge-available { background-color: #38a169; color: white; }
-        .status-badge-issued { background-color: #e53e3e; color: white; }
-        .card { transition: transform 0.2s, box-shadow 0.2s; }
-        .card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1); }
-        .overdue { background-color: #fbd38d; color: #9b2c2c; font-weight: 600; }
+        .nav-link:hover, .nav-link-active { background-color: #2d3748; }
         .overdue-text { color: #c53030; font-weight: 600; }
-        
-        /* Enable flex layout only for medium screens and above */
-        @media (min-width: 768px) {
-            .app-container {
-                display: flex;
-            }
-        }
+        .status-badge-available { background-color: #38a169; color: white; }
     </style>
 </head>
 <body class="min-h-screen">
 
-    <div class="app-container">
-        <!-- Sidebar (Full width on mobile, fixed width on desktop) -->
-        <!-- FIX: Added md:h-screen and flex-shrink-0 to ensure it takes full vertical space on desktop and doesn't shrink -->
-        <div class="sidebar w-full md:w-64 p-4 md:p-6 shadow-xl md:flex md:flex-col md:justify-between md:h-screen flex-shrink-0">
-            <div class="md:sticky md:top-0">
-                <h2 class="text-2xl font-bold text-white mb-4 md:mb-8 border-b border-gray-700 pb-3">Student Portal</h2>
+    <div class="md:flex">
+        <div class="sidebar w-full md:w-64 p-4 flex-shrink-0 md:flex md:flex-col md:h-screen md:sticky md:top-0">
+            <div class="flex-grow">
+                <h2 class="text-xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Student Portal</h2>
                 
                 {% if student_info %}
                 <div class="text-gray-300 mb-6 p-3 bg-gray-700 rounded-lg">
@@ -43,33 +30,29 @@
                 </div>
                 {% endif %}
 
-                <!-- Navigation links are vertical stacked on all screens -->
-                <nav class="flex flex-col md:block space-y-2">
-                    <!-- Dashboard is active here -->
-                    <a href="{{ url_for('student_dashboard') }}" class="nav-link flex items-center p-3 rounded-lg text-white bg-blue-600 font-medium shadow-md">
-                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-10v10a1 1 0 001 1h3m-3-14L12 3l-7 7"></path></svg>
+                <nav class="flex flex-col space-y-1">
+                    <a href="{{ url_for('student_dashboard') }}" class="nav-link-active flex items-center p-2 rounded-lg bg-blue-600 text-gray-300 font-medium  shadow-md">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-10v10a1 1 0 001 1h3m-3-14L12 3l-7 7"></path></svg>
                         Dashboard
                     </a>
-                    <a href="{{ url_for('student_search_books') }}" class="nav-link flex items-center p-3 rounded-lg text-gray-300 font-medium hover:bg-gray-700">
-                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <a href="{{ url_for('student_search_books') }}" class="nav-link flex items-center p-2 rounded-lg text-white font-medium">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                         Search Books
                     </a>
                 </nav>
             </div>
-            
-            <!-- Desktop Logout Button -->
-            <a href="{{ url_for('student_logout') }}" class="hidden md:flex items-center p-3 rounded-lg text-red-400 font-medium hover:bg-gray-700 mt-6">
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                Logout
-            </a>
+            <div class="flex-shrink-0">
+                <a href="{{ url_for('student_logout') }}" class="nav-link flex items-center p-2 rounded-lg text-red-400 font-medium">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    Logout
+                </a>
+            </div>
         </div>
 
-        <!-- Main Content (Adjusted padding for mobile) -->
-        <div class="p-4 sm:p-6 md:flex-grow md:p-10">
+        <div class="flex-grow p-10">
             <header class="mb-6 md:mb-8 flex flex-col md:flex-row justify-between items-start md:items-center pb-4 border-b border-gray-200">
-                <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-2 md:mb-0">Student Dashboard</h1>
+                <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-2 md:mb-0">Book Search</h1>
                 
-                <!-- Book Availability Status (Flex wrapper for better mobile stacking) -->
                 {% if availability %}
                 <div class="flex flex-wrap gap-3 items-center">
                     <span class="text-gray-600 font-medium">Total Books: <span class="text-lg font-bold text-gray-800">{{ availability.total_count }}</span></span>
@@ -78,14 +61,12 @@
                 {% endif %}
             </header>
 
-            <!-- Flash Messages -->
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
                         <div class="p-4 mb-4 rounded-lg font-medium text-sm 
                             {% if category == 'success' %} bg-green-100 text-green-700 border-green-400 
                             {% elif category == 'danger' %} bg-red-100 text-red-700 border-red-400 
-                            {% elif category == 'warning' %} bg-yellow-100 text-yellow-700 border-yellow-400 
                             {% else %} bg-blue-100 text-blue-700 border-blue-400 
                             {% endif %} border-l-4" role="alert">
                             {{ message }}
@@ -94,44 +75,30 @@
                 {% endif %}
             {% endwith %}
 
-            <!-- Active Loans Section -->
             <div class="mt-8">
-                <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 flex items-center">
-                    <svg class="w-6 h-6 mr-3 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.467 9.5 5.513 8 6.5c-1.832 1.458-2.578 3.849-1.996 6.136l.732 2.932m0 0l3.173 1.269a2 2 0 001.664 0l3.173-1.269.732-2.932c.582-2.287-.164-4.678-1.996-6.136-1.5-1.1-2.832-1.146-4-1.146z"></path></svg>
-                    Your Active Loans
-                    {% if active_loans|length > 0 %}
-                        <span class="ml-3 px-3 py-1 bg-yellow-400 text-gray-800 text-sm font-bold rounded-full shadow-sm">{{ active_loans|length }}</span>
-                    {% endif %}
-                </h2>
-
-                {% if active_loans|length > 0 %}
-                    <!-- Responsive Table Wrapper: overflow-x-auto allows horizontal scrolling on mobile -->
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">Your Active Loans</h2>
+                {% if active_loans %}
                     <div class="overflow-x-auto bg-white rounded-xl shadow-lg">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Issue Date</th>
-                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Title</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Issue Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Due Date</th>
+                                    <th class="px-6 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 {% for loan in active_loans %}
-                                <tr class="hover:bg-gray-50 {% if loan.is_overdue %} overdue {% endif %}">
-                                    <td class="px-3 py-4 text-sm font-medium text-gray-900">{{ loan.book_name }}</td>
-                                    <td class="px-3 py-4 text-sm text-gray-500">{{ loan.custom_id }}</td>
-                                    <td class="px-3 py-4 text-sm text-gray-500">{{ loan.issue_date }}</td>
-                                    <td class="px-3 py-4 text-sm 
-                                        {% if loan.is_overdue %} overdue-text font-bold {% else %} text-gray-700 {% endif %}">
-                                        {{ loan.due_date }}
-                                    </td>
-                                    <td class="px-3 py-4 text-sm">
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{{ loan.book_name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ loan.issue_date | dateformat }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm {{ 'overdue-text' if loan.is_overdue else 'text-gray-500' }}">{{ loan.due_date | dateformat }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
                                         {% if loan.is_overdue %}
-                                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">OVERDUE!</span>
+                                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">OVERDUE</span>
                                         {% else %}
-                                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">On Loan</span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -140,23 +107,49 @@
                         </table>
                     </div>
                 {% else %}
-                    <div class="p-6 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl text-center shadow-inner">
-                        <p class="font-semibold">You currently have no books issued. Head over to Search Books to find something new!</p>
+                    <div class="p-6 bg-green-50 border border-green-200 text-green-800 rounded-xl text-center shadow-inner">
+                        <p class="font-semibold">You have no active loans. Go find a book!</p>
                     </div>
                 {% endif %}
             </div>
 
-            <!-- Mobile Logout Button (Hidden on desktop) -->
-            <div class="md:hidden mt-8">
-                <a href="{{ url_for('student_logout') }}" class="flex items-center justify-center p-3 rounded-lg text-red-400 font-medium hover:bg-red-500 hover:text-white border border-red-400 transition duration-150">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+            <div class="mt-12">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">Your Loan History</h2>
+                 {% if loan_history %}
+                    <div class="overflow-x-auto bg-white rounded-xl shadow-lg">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Title</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Issue Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Return Date</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% for loan in loan_history %}
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{{ loan.book_name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ loan.issue_date | dateformat }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ loan.return_date | dateformat }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="p-6 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl text-center shadow-inner">
+                        <p class="font-semibold">You have no past loan records.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- <div class="mt-8 md:hidden">
+                <a href="{{ url_for('student_logout') }}" class="flex items-center justify-center p-3 rounded-lg text-red-400 font-medium hover:bg-red-500 hover:text-white border border-red-400 transition">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                     Logout
                 </a>
-            </div>
-            
+            </div> -->
         </div>
-        
     </div>
-
 </body>
 </html>
