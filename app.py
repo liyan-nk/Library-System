@@ -26,7 +26,7 @@ DB_NAME = "library.db"
 
 # --- Hardcoded Librarian Credentials (Used for demonstration) ---
 LIBRARIAN_USERNAME = os.environ.get('LIBRARIAN_USER', 'librarian')
-LIBRARIAN_PASSWORD = os.environ.get('LIBRARIAN_PASS', 'librarypass') 
+LIBRARIAN_PASSWORD = os.environ.get('LIBRARIAN_PASS', 'password') 
 # --------------------------------------------------------
 
 # --- Hashing Utilities for Student Authentication ---
