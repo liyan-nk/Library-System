@@ -152,6 +152,57 @@
     </div>
 
     <!-- Modals (Edit, Delete) go here -->
+     <div id="editModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-lg mx-auto">
+            <form id="editForm" method="POST" action="">
+                <div class="p-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Edit Book</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="editBookName" class="block text-sm font-medium text-gray-700">Book Name</label>
+                            <input type="text" id="editBookName" name="name" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="editBookAuthor" class="block text-sm font-medium text-gray-700">Author</label>
+                            <input type="text" id="editBookAuthor" name="author" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="editBookCustomId" class="block text-sm font-medium text-gray-700">Custom ID (Optional)</label>
+                            <input type="text" id="editBookCustomId" name="custom_id" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-6 py-4 flex justify-end items-center space-x-3 rounded-b-lg">
+                    <button type="button" class="cancel-btn px-4 py-2 bg-white border border-gray-300 text-gray-700 font-semibold rounded-md shadow-sm hover:bg-gray-50 transition">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 border border-transparent text-white font-semibold rounded-md shadow-sm hover:bg-blue-700 transition">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="deleteModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-md mx-auto">
+            <div class="p-6">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 h-12 w-12 flex items-center justify-center rounded-full bg-red-100">
+                        <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    </div>
+                    <div class="ml-4 text-left">
+                        <h3 class="text-lg font-bold text-gray-900">Delete Book</h3>
+                        <p class="text-sm text-gray-500 mt-1">
+                            Are you sure you want to delete <strong id="bookNamePlaceholder" class="font-semibold text-gray-800"></strong>?
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-6 py-4 flex justify-end items-center space-x-3 rounded-b-lg">
+                <button type="button" class="cancel-btn px-4 py-2 bg-white border border-gray-300 text-gray-700 font-semibold rounded-md shadow-sm hover:bg-gray-50 transition">Cancel</button>
+                <form id="deleteForm" method="POST" action="">
+                    <button type="submit" class="px-4 py-2 bg-red-600 border border-transparent text-white font-semibold rounded-md shadow-sm hover:bg-red-700 transition">Confirm Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -280,8 +331,35 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function rebindModalButtons() {
-        // ... (your modal script from previous steps)
+        const allModals = document.querySelectorAll('.modal-overlay');
+        function hideAllModals() { allModals.forEach(modal => modal.classList.add('hidden')); }
+        document.querySelectorAll('.cancel-btn').forEach(btn => btn.addEventListener('click', hideAllModals));
+        allModals.forEach(modal => { modal.addEventListener('click', e => { if (e.target === modal) hideAllModals(); }); });
+        
+        const deleteModal = document.getElementById('deleteModal');
+        const deleteForm = document.getElementById('deleteForm');
+        document.querySelectorAll('.delete-book-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                deleteModal.querySelector('#bookNamePlaceholder').textContent = `"${button.dataset.bookName}"`;
+                deleteForm.action = `/delete_book/${button.dataset.bookId}`;
+                deleteModal.classList.remove('hidden');
+            });
+        });
+
+        const editModal = document.getElementById('editModal');
+        const editForm = document.getElementById('editForm');
+        document.querySelectorAll('.edit-book-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                editForm.querySelector('#editBookName').value = button.dataset.bookName;
+                editForm.querySelector('#editBookAuthor').value = button.dataset.bookAuthor;
+                editForm.querySelector('#editBookCustomId').value = button.dataset.bookCustomid;
+                editForm.action = `/edit_book/${button.dataset.bookId}`;
+                editModal.classList.remove('hidden');
+            });
+        });
     }
+    
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden')); }});
     
     queryInput.addEventListener('input', (e) => {
         clearTimeout(debounceTimer);
@@ -298,10 +376,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.body.addEventListener('click', (e) => {
         const target = e.target.closest('a[data-page]');
-        if (target) {
+        if (target && !target.classList.contains('page-link-disabled')) {
             e.preventDefault();
             const page = parseInt(target.dataset.page, 10);
-            if (page && page !== currentPage) fetchBooks(page);
+            if (page) fetchBooks(page);
         }
     });
 
