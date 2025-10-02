@@ -162,5 +162,3 @@ Fork the repo and submit a PR, or open an issue to suggest improvements.
 * [Tailwind CSS](https://tailwindcss.com/)
 * [Chart.js](https://www.chartjs.org/)
 * [Pandas](https://pandas.pydata.org/)
-
----
