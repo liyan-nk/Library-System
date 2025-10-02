@@ -25,6 +25,13 @@ def dateformat(value, format='%d/%m/%y'):
 app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(24))
 DB_NAME = "library.db"
 
+# --- HELPER FUNCTION FOR TRUNCATION ---
+def truncate_text(text, max_length=35):
+    """Truncates text to a max length and adds an ellipsis."""
+    if text and len(text) > max_length:
+        return text[:max_length].strip() + '...'
+    return text
+
 # --- Hardcoded Librarian Credentials (Used for demonstration) ---
 LIBRARIAN_USERNAME = os.environ.get('LIBRARIAN_USER', 'librarian')
 LIBRARIAN_PASSWORD = os.environ.get('LIBRARIAN_PASS', 'password') 
@@ -112,21 +119,27 @@ def init_db():
 # Initialize the database structures
 init_db()
 
+# --- Context Processor for Pending Count ---
+@app.context_processor
+def inject_pending_count():
+    with get_connection() as conn:
+        try:
+            count = conn.execute("SELECT COUNT(id) FROM students_auth WHERE is_approved = 0").fetchone()[0]
+            return dict(pending_count=count)
+        except:
+            return dict(pending_count=0)
 
 # ----------------- MAIN PORTAL SELECTION ROUTE -----------------
 
 @app.route("/")
 def select_portal():
-    # Redirect if either user type is already logged in
-    if session.get('logged_in'):
-        return redirect(url_for('index'))
-    if session.get('student_logged_in'):
-        return redirect(url_for('student_dashboard'))
-        
+    if session.get('logged_in'): return redirect(url_for('index'))
+    if session.get('student_logged_in'): return redirect(url_for('student_dashboard'))
     return render_template("select_portal.html")
 
 # ----------------- LIBRARIAN AUTH DECORATOR AND ROUTES -----------------
 
+# --- LIBRARIAN ROUTES ---
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -166,42 +179,19 @@ def logout():
 @login_required 
 def index():
     with get_connection() as conn:
-        # --- Existing Stats ---
-        stats = conn.execute("""
-            SELECT
-                (SELECT COUNT(id) FROM books) AS total_books,
-                (SELECT COUNT(id) FROM students) AS total_students,
-                (SELECT COUNT(id) FROM transactions WHERE return_date IS NULL) AS active_loans
-        """).fetchone()
+        stats = conn.execute("SELECT (SELECT COUNT(id) FROM books) AS total_books, (SELECT COUNT(id) FROM students) AS total_students, (SELECT COUNT(id) FROM transactions WHERE return_date IS NULL) AS active_loans").fetchone()
+        overdue_loans = conn.execute("SELECT b.name AS book_name, s.name AS student_name, s.admission_no, t.due_date FROM transactions t JOIN books b ON t.book_id = b.id JOIN students s ON t.student_id = s.id WHERE t.return_date IS NULL AND t.due_date < date('now') ORDER BY t.due_date ASC").fetchall()
+        leaderboard_students = conn.execute("SELECT s.name, COUNT(t.id) as book_count FROM transactions t JOIN students s ON t.student_id = s.id GROUP BY t.student_id ORDER BY book_count DESC LIMIT 5").fetchall()
+        chart_data_query = conn.execute("SELECT b.name, COUNT(t.id) as borrow_count FROM transactions t JOIN books b ON t.book_id = b.id GROUP BY t.book_id ORDER BY borrow_count DESC LIMIT 5").fetchall()
 
-        overdue_loans = conn.execute("""
-            SELECT b.name AS book_name, s.name AS student_name, s.admission_no, t.due_date
-            FROM transactions t
-            JOIN books b ON t.book_id = b.id
-            JOIN students s ON t.student_id = s.id
-            WHERE t.return_date IS NULL AND t.due_date < date('now')
-            ORDER BY t.due_date ASC
-        """).fetchall()
+    # --- UPDATED: Process data for Chart.js with truncation ---
+    chart_labels = [truncate_text(row['name']) for row in chart_data_query]
+    chart_data = [row['borrow_count'] for row in chart_data_query]
 
-        # --- NEW: Leaderboard Query ---
-        leaderboard_students = conn.execute("""
-            SELECT s.name, COUNT(t.id) as book_count
-            FROM transactions t
-            JOIN students s ON t.student_id = s.id
-            GROUP BY t.student_id
-            ORDER BY book_count DESC
-            LIMIT 5
-        """).fetchall()
-
-        # --- NEW: Chart Data Query ---
-        chart_data_query = conn.execute("""
-            SELECT b.name, COUNT(t.id) as borrow_count
-            FROM transactions t
-            JOIN books b ON t.book_id = b.id
-            GROUP BY t.book_id
-            ORDER BY borrow_count DESC
-            LIMIT 5
-        """).fetchall()
+    return render_template("index.html", 
+                           total_books=stats['total_books'], total_students=stats['total_students'], active_loans=stats['active_loans'],
+                           overdue_loans=overdue_loans, leaderboard_students=leaderboard_students,
+                           chart_labels=chart_labels, chart_data=chart_data)
 
     # Process data for Chart.js
     chart_labels = [row['name'] for row in chart_data_query]
@@ -323,64 +313,24 @@ def student_logout():
 @student_login_required
 def student_dashboard():
     student_adm_no = session.get('student_adm_no')
-    
     with get_connection() as conn:
         student_record = conn.execute("SELECT id, name, batch FROM students WHERE admission_no=?", (student_adm_no,)).fetchone()
-        
         if not student_record:
             flash("Could not find your student profile.", "danger")
             return redirect(url_for('student_logout'))
-        
         student_id = student_record['id']
-
-        active_loans = conn.execute("""
-            SELECT t.id, t.issue_date, t.due_date, 
-                   COALESCE(b.name, '[DELETED BOOK]') AS book_name,
-                   t.due_date < date('now') AS is_overdue
-            FROM transactions t
-            LEFT JOIN books b ON t.book_id = b.id
-            WHERE t.student_id = ? AND t.return_date IS NULL
-            ORDER BY t.due_date ASC
-        """, (student_id,)).fetchall()
-        
-        loan_history = conn.execute("""
-            SELECT t.issue_date, t.return_date, COALESCE(b.name, '[DELETED BOOK]') AS book_name
-            FROM transactions t
-            LEFT JOIN books b ON t.book_id = b.id
-            WHERE t.student_id = ? AND t.return_date IS NOT NULL
-            ORDER BY t.return_date DESC
-        """, (student_id,)).fetchall()
-        
-        # --- NEW QUERIES FOR ANALYTICS ---
-        leaderboard_students = conn.execute("""
-            SELECT s.name, COUNT(t.id) as book_count
-            FROM transactions t
-            JOIN students s ON t.student_id = s.id
-            GROUP BY t.student_id
-            ORDER BY book_count DESC
-            LIMIT 5
-        """).fetchall()
-
-        chart_data_query = conn.execute("""
-            SELECT b.name, COUNT(t.id) as borrow_count
-            FROM transactions t
-            JOIN books b ON t.book_id = b.id
-            GROUP BY t.book_id
-            ORDER BY borrow_count DESC
-            LIMIT 5
-        """).fetchall()
-
-    # Process data for Chart.js
-    chart_labels = [row['name'] for row in chart_data_query]
+        active_loans = conn.execute("SELECT t.due_date < date('now') AS is_overdue, t.issue_date, t.due_date, COALESCE(b.name, '[DELETED BOOK]') AS book_name FROM transactions t LEFT JOIN books b ON t.book_id = b.id WHERE t.student_id = ? AND t.return_date IS NULL ORDER BY t.due_date ASC", (student_id,)).fetchall()
+        loan_history = conn.execute("SELECT t.issue_date, t.return_date, COALESCE(b.name, '[DELETED BOOK]') AS book_name FROM transactions t LEFT JOIN books b ON t.book_id = b.id WHERE t.student_id = ? AND t.return_date IS NOT NULL ORDER BY t.return_date DESC", (student_id,)).fetchall()
+        leaderboard_students = conn.execute("SELECT s.name, COUNT(t.id) as book_count FROM transactions t JOIN students s ON t.student_id = s.id GROUP BY t.student_id ORDER BY book_count DESC LIMIT 5").fetchall()
+        chart_data_query = conn.execute("SELECT b.name, COUNT(t.id) as borrow_count FROM transactions t JOIN books b ON t.book_id = b.id GROUP BY t.book_id ORDER BY borrow_count DESC LIMIT 5").fetchall()
+    
+    # --- UPDATED: Process data for Chart.js with truncation ---
+    chart_labels = [truncate_text(row['name']) for row in chart_data_query]
     chart_data = [row['borrow_count'] for row in chart_data_query]
 
     return render_template('student_dashboard.html', 
-                           active_loans=active_loans, 
-                           loan_history=loan_history,
-                           student_info=student_record,
-                           leaderboard_students=leaderboard_students,
-                           chart_labels=chart_labels,
-                           chart_data=chart_data)
+                           active_loans=active_loans, loan_history=loan_history, student_info=student_record,
+                           leaderboard_students=leaderboard_students, chart_labels=chart_labels, chart_data=chart_data)
 
 
 
