@@ -166,6 +166,7 @@ def logout():
 @login_required 
 def index():
     with get_connection() as conn:
+        # --- Existing Stats ---
         stats = conn.execute("""
             SELECT
                 (SELECT COUNT(id) FROM books) AS total_books,
@@ -174,7 +175,7 @@ def index():
         """).fetchone()
 
         overdue_loans = conn.execute("""
-            SELECT t.id, b.name AS book_name, s.name AS student_name, s.admission_no, t.due_date, t.issue_date
+            SELECT b.name AS book_name, s.name AS student_name, s.admission_no, t.due_date
             FROM transactions t
             JOIN books b ON t.book_id = b.id
             JOIN students s ON t.student_id = s.id
@@ -182,11 +183,38 @@ def index():
             ORDER BY t.due_date ASC
         """).fetchall()
 
+        # --- NEW: Leaderboard Query ---
+        leaderboard_students = conn.execute("""
+            SELECT s.name, COUNT(t.id) as book_count
+            FROM transactions t
+            JOIN students s ON t.student_id = s.id
+            GROUP BY t.student_id
+            ORDER BY book_count DESC
+            LIMIT 5
+        """).fetchall()
+
+        # --- NEW: Chart Data Query ---
+        chart_data_query = conn.execute("""
+            SELECT b.name, COUNT(t.id) as borrow_count
+            FROM transactions t
+            JOIN books b ON t.book_id = b.id
+            GROUP BY t.book_id
+            ORDER BY borrow_count DESC
+            LIMIT 5
+        """).fetchall()
+
+    # Process data for Chart.js
+    chart_labels = [row['name'] for row in chart_data_query]
+    chart_data = [row['borrow_count'] for row in chart_data_query]
+
     return render_template("index.html", 
                            total_books=stats['total_books'],
                            total_students=stats['total_students'],
                            active_loans=stats['active_loans'],
-                           overdue_loans=overdue_loans)
+                           overdue_loans=overdue_loans,
+                           leaderboard_students=leaderboard_students,
+                           chart_labels=chart_labels,
+                           chart_data=chart_data)
 
 # ----------------- STUDENT AUTH DECORATOR AND ROUTES -----------------
 
@@ -297,21 +325,17 @@ def student_dashboard():
     student_adm_no = session.get('student_adm_no')
     
     with get_connection() as conn:
-        # Get the student's primary ID for queries
         student_record = conn.execute("SELECT id, name, batch FROM students WHERE admission_no=?", (student_adm_no,)).fetchone()
         
         if not student_record:
-            # This is a safeguard in case the student record is somehow deleted
             flash("Could not find your student profile.", "danger")
             return redirect(url_for('student_logout'))
         
         student_id = student_record['id']
 
-        # Query for active loans (unchanged)
         active_loans = conn.execute("""
             SELECT t.id, t.issue_date, t.due_date, 
-                   COALESCE(b.name, '[DELETED BOOK]') AS book_name, 
-                   COALESCE(b.custom_id, '-') AS custom_id,
+                   COALESCE(b.name, '[DELETED BOOK]') AS book_name,
                    t.due_date < date('now') AS is_overdue
             FROM transactions t
             LEFT JOIN books b ON t.book_id = b.id
@@ -319,8 +343,6 @@ def student_dashboard():
             ORDER BY t.due_date ASC
         """, (student_id,)).fetchall()
         
-        # --- NEW QUERY ---
-        # Query for loan history (returned books)
         loan_history = conn.execute("""
             SELECT t.issue_date, t.return_date, COALESCE(b.name, '[DELETED BOOK]') AS book_name
             FROM transactions t
@@ -328,19 +350,38 @@ def student_dashboard():
             WHERE t.student_id = ? AND t.return_date IS NOT NULL
             ORDER BY t.return_date DESC
         """, (student_id,)).fetchall()
+        
+        # --- NEW QUERIES FOR ANALYTICS ---
+        leaderboard_students = conn.execute("""
+            SELECT s.name, COUNT(t.id) as book_count
+            FROM transactions t
+            JOIN students s ON t.student_id = s.id
+            GROUP BY t.student_id
+            ORDER BY book_count DESC
+            LIMIT 5
+        """).fetchall()
 
-        # Query for book availability (unchanged)
-        book_availability = conn.execute("""
-            SELECT SUM(CASE WHEN available = 1 THEN 1 ELSE 0 END) AS available_count,
-                   COUNT(id) AS total_count
-            FROM books
-        """).fetchone()
+        chart_data_query = conn.execute("""
+            SELECT b.name, COUNT(t.id) as borrow_count
+            FROM transactions t
+            JOIN books b ON t.book_id = b.id
+            GROUP BY t.book_id
+            ORDER BY borrow_count DESC
+            LIMIT 5
+        """).fetchall()
+
+    # Process data for Chart.js
+    chart_labels = [row['name'] for row in chart_data_query]
+    chart_data = [row['borrow_count'] for row in chart_data_query]
 
     return render_template('student_dashboard.html', 
                            active_loans=active_loans, 
-                           loan_history=loan_history, # Pass new history data
-                           availability=book_availability,
-                           student_info=student_record)
+                           loan_history=loan_history,
+                           student_info=student_record,
+                           leaderboard_students=leaderboard_students,
+                           chart_labels=chart_labels,
+                           chart_data=chart_data)
+
 
 
 # ----------------- STUDENT BOOK SEARCH ROUTE (FIXED) -----------------

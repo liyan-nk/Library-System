@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Portal - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
@@ -78,6 +79,38 @@
                     {% endfor %}
                 {% endif %}
             {% endwith %}
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+                <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Top Readers Leaderboard</h3>
+                    {% if leaderboard_students %}
+                    <ul class="divide-y divide-gray-200">
+                        {% for student in leaderboard_students %}
+                        <!-- ===== THIS IS THE UPDATED SECTION ===== -->
+                        <li class="py-3 flex justify-between items-center {% if student.name == student_info.name %} bg-yellow-100 rounded-lg px-3 -mx-3 {% endif %}">
+                            <div>
+                                <span class="font-semibold {% if student.name == student_info.name %} text-yellow-900 {% else %} text-gray-700 {% endif %}">{{ loop.index }}. {{ student.name }}</span>
+                                {% if student.name == student_info.name %}
+                                    <span class="text-sm font-bold text-yellow-800 ml-2">(You)</span>
+                                {% endif %}
+                            </div>
+                            <span class="font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded-md text-sm">{{ student.book_count }} books</span>
+                        </li>
+                        <!-- ===== END OF UPDATED SECTION ===== -->
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-gray-500">No borrowing data available yet.</p>
+                    {% endif %}
+                </div>
+
+                <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Trending Books</h3>
+                    <div id="chart-container" class="relative">
+                        <canvas id="trendingBooksChart"></canvas>
+                    </div>
+                </div>
+            </div>
 
             <div class="mt-8">
                 <h2 class="text-3xl font-bold text-gray-800 mb-4">Your Active Loans</h2>
@@ -155,5 +188,71 @@
             </div> -->
         </div>
     </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('trendingBooksChart');
+        const chartContainer = document.getElementById('chart-container');
+
+        if (ctx) {
+            const chartLabels = JSON.parse('{{ chart_labels | tojson | safe }}');
+            const chartData = JSON.parse('{{ chart_data | tojson | safe }}');
+
+            const numBooks = chartLabels.length;
+            if (numBooks > 0) {
+                const barHeight = 40; 
+                const chartPadding = 30;
+                const newHeight = numBooks * barHeight + chartPadding;
+                chartContainer.style.height = `${newHeight}px`;
+            } else {
+                chartContainer.style.height = '100px';
+            }
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Times Borrowed',
+                        data: chartData,
+                        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                        borderColor: 'rgba(37, 99, 235, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { precision: 0, color: '#4b5563' },
+                            grid: { display: false }
+                        },
+                        y: {
+                             ticks: { color: '#1f2937' },
+                             grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#111827',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 12 },
+                            padding: 10,
+                            cornerRadius: 4,
+                            displayColors: false
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
 </body>
 </html>
