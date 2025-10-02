@@ -53,7 +53,7 @@ A clean, responsive, mobile-first portal:
 
 ### 1. Clone the Repository
 ```bash
-git clone <your-repository-url>
+git clone [<your-repository-url>](https://github.com/liyan-nk/Library-System)
 cd <your-project-folder>
 ````
 
