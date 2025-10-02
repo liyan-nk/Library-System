@@ -34,12 +34,9 @@
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         Return Book
                     </a>
-                    <a href="{{ url_for('approve_students') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
-                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a1 1 0 011-1h12a1 1 0 011 1v1h-14v-1z"></path></svg>
-                        <span>Approve Students</span>
-                        {% if pending_count > 0 %}
-                            <span class="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{{ pending_count }}</span>
-                        {% endif %}
+                    <a href="{{ url_for('transaction_history') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Transaction History
                     </a>
                     <a href="{{ url_for('view_books') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.467 9.5 5.513 8 6.5c-1.832 1.458-2.578 3.849-1.996 6.136l.732 2.932m0 0l3.173 1.269a2 2 0 001.664 0l3.173-1.269.732-2.932c.582-2.287-.164-4.678-1.996-6.136-1.5-1.1-2.832-1.146-4-1.146z"></path></svg>
@@ -53,12 +50,15 @@
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         Active Issues
                     </a>
-
-                    <span class="text-xs uppercase text-gray-500 px-2 pt-3 pb-1 font-semibold block">User Management</span>
                     <a href="{{ url_for('approve_students') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
-                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a1 1 0 011-1h12a1 1 0 011 1v1h-14v-1z"></path></svg>
-                        Approve Students
+                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a1 1 0 011-1h12a1 1 0 011 1v1h-14v-1z"></path></svg>
+                        <span>Approve Students</span>
+                        {% if pending_count > 0 %}
+                            <span class="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{{ pending_count }}</span>
+                        {% endif %}
                     </a>
+                    <span class="text-xs uppercase text-gray-500 px-2 pt-3 pb-1 font-semibold block">User Management</span>
+                    
                     <a href="{{ url_for('view_students') }}" class="nav-link flex items-center p-2 rounded-lg text-gray-300 font-medium">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20v-2a3 3 0 00-5.356-1.857M12 10V6M9 6h6m2 5a4 4 0 11-8 0 4 4 0 018 0zM3 20a1 1 0 011-1h12a1 1 0 011 1v1h-14v-1z"></path></svg>
                         View Students
