@@ -336,59 +336,28 @@ def student_dashboard():
 
 # ----------------- STUDENT BOOK SEARCH ROUTE (FIXED) -----------------
 
-@app.route("/student_search_books", methods=["GET", "POST"])
+@app.route("/student_search_books", methods=["GET"])
 @student_login_required 
 def student_search_books():
     student_adm_no = session.get('student_adm_no')
-    results = []
-    query = ""
-    active_loans = [] # Initialize active_loans list
     
     with get_connection() as conn:
-        # 1. Fetch student info
-        student_info = conn.execute("SELECT name, batch FROM students WHERE admission_no=?", (student_adm_no,)).fetchone()
+        student_info = conn.execute("SELECT id, name, batch FROM students WHERE admission_no=?", (student_adm_no,)).fetchone()
         
-        # 2. Fetch book availability
-        availability = conn.execute("""
-            SELECT SUM(CASE WHEN available = 1 THEN 1 ELSE 0 END) AS available_count,
-                   COUNT(id) AS total_count
-            FROM books
-        """).fetchone()
+        availability = conn.execute("SELECT SUM(CASE WHEN available = 1 THEN 1 ELSE 0 END) AS available_count, COUNT(id) AS total_count FROM books").fetchone()
 
-        # 3. Fetch Active Loans (NEW: To display on the search results page)
         active_loans = conn.execute("""
-            SELECT t.id, t.issue_date, t.due_date, 
-                   COALESCE(b.name, '[DELETED BOOK]') AS book_name, 
-                   COALESCE(b.custom_id, '-') AS custom_id,
-                   t.due_date < date('now') AS is_overdue
+            SELECT b.name AS book_name, t.issue_date, t.due_date, t.due_date < date('now') AS is_overdue
             FROM transactions t
-            JOIN students s ON t.student_id = s.id
-            LEFT JOIN books b ON t.book_id = b.id
-            WHERE s.admission_no = ? AND t.return_date IS NULL
+            JOIN books b ON t.book_id = b.id
+            WHERE t.student_id = ? AND t.return_date IS NULL
             ORDER BY t.due_date ASC
-        """, (student_adm_no,)).fetchall()
+        """, (student_info['id'],)).fetchall()
         
-        # ... (rest of the search logic)
-        if request.method == "POST":
-            query = request.form.get("query", "").strip()
-            if query:
-                search_term = f"%{query}%"
-                results = conn.execute("""
-                    SELECT * FROM books
-                    WHERE name LIKE ?
-                    OR author LIKE ?
-                    OR custom_id LIKE ?
-                    OR id LIKE ?
-                    ORDER BY name ASC
-                """, (search_term, search_term, search_term, search_term)).fetchall()
-        
-    # 4. Pass all required variables, including active_loans, to the template
     return render_template("student_search_results.html", 
-                           results=results, 
-                           search_query=query, 
                            student_info=student_info,
                            availability=availability,
-                           active_loans=active_loans) # <-- ADDED
+                           active_loans=active_loans)
 
 
 # ----------------- LIBRARIAN MANAGEMENT ROUTES -----------------
@@ -1140,6 +1109,62 @@ def student_details(id):
                            active_loans=active_loans, 
                            loan_history=loan_history)
 
+@app.route("/api/student_search")
+@student_login_required
+def api_student_search():
+    BOOKS_PER_PAGE = 15
+    page = request.args.get('page', 1, type=int)
+    query = request.args.get('query', '')
+    status_filter = request.args.get('status', 'all')
+
+    params = []
+    conditions = []
+    
+    if query:
+        search_term = f"%{query}%"
+        conditions.append("(name LIKE ? OR author LIKE ? OR custom_id LIKE ?)")
+        params.extend([search_term, search_term, search_term])
+        
+    if status_filter == 'available':
+        conditions.append("available = 1")
+    elif status_filter == 'issued':
+        conditions.append("available = 0")
+
+    where_clause = ""
+    if conditions:
+        where_clause = " WHERE " + " AND ".join(conditions)
+    
+    with get_connection() as conn:
+        # First, get the total count of books MATCHING THE FILTERS
+        count_sql = "SELECT COUNT(id) FROM books" + where_clause
+        total_books = conn.execute(count_sql, tuple(params)).fetchone()[0]
+        
+        # Calculate total pages
+        total_pages = 1
+        if total_books > 0:
+            total_pages = math.ceil(total_books / BOOKS_PER_PAGE)
+
+        if page > total_pages and total_pages > 0: page = total_pages
+        if page < 1: page = 1
+
+        offset = (page - 1) * BOOKS_PER_PAGE
+        
+        # Prepare the final query to get just one page of books
+        select_sql = "SELECT * FROM books" + where_clause + " ORDER BY name ASC LIMIT ? OFFSET ?"
+        final_params = params + [BOOKS_PER_PAGE, offset]
+        
+        books_data = conn.execute(select_sql, tuple(final_params)).fetchall()
+        books = [dict(row) for row in books_data]
+        
+    return jsonify({
+        'books': books,
+        'pagination': {
+            'page': page,
+            'total_pages': total_pages,
+            'total_books': total_books,
+            'per_page': BOOKS_PER_PAGE
+        }
+    })
 
 if __name__ == "__main__":
     app.run(debug=True)
