@@ -54,7 +54,7 @@ A clean, responsive, mobile-first portal:
 ### 1. Clone the Repository
 ```bash
 git clone https://github.com/liyan-nk/Library-System
-cd library management
+cd Library-System
 ````
 
 ### 2. Create a Virtual Environment
