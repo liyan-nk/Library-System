@@ -172,8 +172,8 @@ def login():
 def logout():
     session.pop('logged_in', None)
     session.pop('username', None)
-    flash('You have been logged out.', 'info')
-    return redirect(url_for('select_portal'))
+    # Redirect with a URL parameter instead of flashing a message
+    return redirect(url_for('select_portal', logged_out=True))
 
 @app.route("/index")
 @login_required 
@@ -306,8 +306,8 @@ def student_login():
 def student_logout():
     session.pop('student_logged_in', None)
     session.pop('student_adm_no', None)
-    flash('You have been logged out.', 'info')
-    return redirect(url_for('select_portal'))
+    # Redirect with a URL parameter instead of flashing a message
+    return redirect(url_for('select_portal', logged_out=True))
 
 @app.route('/student_dashboard')
 @student_login_required
